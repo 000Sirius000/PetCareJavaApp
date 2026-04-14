@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:title="Symptom entry" />
+
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_recorded_at"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:hint="Date and time" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<Button
+    android:id="@+id/button_select_tags"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:text="Select symptom tags" />
+
+<TextView
+    android:id="@+id/text_tags"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:text="No tags selected" />
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_custom_tag"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Add custom tag (optional)" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<Spinner
+    android:id="@+id/input_severity"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp" />
+
+<Spinner
+    android:id="@+id/input_linked_visit"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp" />
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_notes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Notes"
+        android:minLines="4" />
+</com.google.android.material.textfield.TextInputLayout>
+
+
+        <Button
+            android:id="@+id/button_save"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/save" />
+
+
+
+        <Button
+            android:id="@+id/button_delete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/delete"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

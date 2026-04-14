@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:title="Medication" />
+
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Medication name" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<Spinner
+    android:id="@+id/input_linked_visit"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp" />
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_dosage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Dosage" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_dosage_unit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Dosage unit" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<Spinner
+    android:id="@+id/input_frequency"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp" />
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_interval_days"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Every N days"
+        android:inputType="number" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_start_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:hint="Start date" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_end_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:hint="End date (optional)" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<CheckBox
+    android:id="@+id/check_archived"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:text="Archive this medication course" />
+
+
+        <Button
+            android:id="@+id/button_save"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/save" />
+
+
+
+        <Button
+            android:id="@+id/button_delete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/delete"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

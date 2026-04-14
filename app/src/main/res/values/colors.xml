@@ -1,0 +1,12 @@
+<resources>
+    <color name="pet_primary">#7E57C2</color>
+    <color name="pet_on_primary">#FFFFFF</color>
+    <color name="pet_secondary">#FFB74D</color>
+    <color name="pet_background">#FFF8F2</color>
+    <color name="pet_surface">#FFFFFFFF</color>
+    <color name="pet_error">#B3261E</color>
+    <color name="pet_success">#2E7D32</color>
+    <color name="pet_warning">#F57C00</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>

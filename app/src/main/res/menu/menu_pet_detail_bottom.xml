@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_health" android:title="@string/health" android:icon="@android:drawable/ic_menu_info_details" />
+    <item android:id="@+id/nav_feeding" android:title="@string/feeding" android:icon="@android:drawable/ic_menu_today" />
+    <item android:id="@+id/nav_activity" android:title="@string/activity" android:icon="@android:drawable/ic_media_play" />
+    <item android:id="@+id/nav_symptoms" android:title="@string/symptoms" android:icon="@android:drawable/ic_dialog_alert" />
+</menu>

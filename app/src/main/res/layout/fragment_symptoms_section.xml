@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/section_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Symptoms"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/section_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Chronological symptom log with tags and severity"
+        android:textSize="14sp" />
+
+    <com.example.petcare.ui.common.SymptomFrequencyChartView
+        android:id="@+id/symptom_chart"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_marginTop="16dp"
+        android:contentDescription="Symptom frequency chart" />
+
+    <Button
+        android:id="@+id/button_add_symptom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Add symptom entry" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/section_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/section_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No symptom entries yet"
+        android:visibility="gone" />
+</LinearLayout>

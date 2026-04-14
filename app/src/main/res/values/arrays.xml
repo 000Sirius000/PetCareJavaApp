@@ -1,0 +1,28 @@
+<resources>
+    <string-array name="species_options">
+        <item>Dog</item>
+        <item>Cat</item>
+    </string-array>
+    <string-array name="sex_options">
+        <item>Male</item>
+        <item>Female</item>
+        <item>Unknown</item>
+    </string-array>
+    <string-array name="theme_options">
+        <item>System</item>
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+    <string-array name="activity_types">
+        <item>Walk</item>
+        <item>Run</item>
+        <item>Play</item>
+        <item>Swim</item>
+        <item>Custom</item>
+    </string-array>
+    <string-array name="severity_options">
+        <item>Mild</item>
+        <item>Moderate</item>
+        <item>Severe</item>
+    </string-array>
+</resources>

@@ -1,0 +1,13 @@
+<resources>
+    <style name="Theme.PetCare" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/pet_primary</item>
+        <item name="colorOnPrimary">@color/pet_on_primary</item>
+        <item name="colorSecondary">@color/pet_secondary</item>
+        <item name="materialButtonStyle">@style/Widget.PetCare.Button</item>
+    </style>
+
+    <style name="Widget.PetCare.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">20dp</item>
+        <item name="android:minHeight">52dp</item>
+    </style>
+</resources>

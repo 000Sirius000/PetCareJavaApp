@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:title="Vet visit" />
+
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:hint="Visit date" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_clinic"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Clinic name" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_vet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Attending vet" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_reason"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Reason for visit" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/input_notes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:hint="Diagnosis / notes"
+        android:minLines="4" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<Button
+    android:id="@+id/button_pick_attachment"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:text="@string/pick_attachment" />
+
+<TextView
+    android:id="@+id/text_attachment"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:text="No attachment selected" />
+
+
+        <Button
+            android:id="@+id/button_save"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/save" />
+
+
+<Button
+    android:id="@+id/button_open_attachment"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:text="@string/open_attachment"
+    android:visibility="gone" />
+
+
+        <Button
+            android:id="@+id/button_delete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/delete"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

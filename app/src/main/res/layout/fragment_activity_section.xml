@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/section_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Activity &amp; weight"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/section_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Weekly goal progress, exercise sessions and weight history"
+        android:textSize="14sp" />
+
+    <com.example.petcare.ui.common.WeightChartView
+        android:id="@+id/weight_chart"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_marginTop="16dp"
+        android:contentDescription="Weight history chart" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/button_add_activity"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Add activity" />
+
+        <Space
+            android:layout_width="12dp"
+            android:layout_height="1dp" />
+
+        <Button
+            android:id="@+id/button_add_weight"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Add weight" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/section_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/section_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No activity or weight entries yet"
+        android:visibility="gone" />
+</LinearLayout>
