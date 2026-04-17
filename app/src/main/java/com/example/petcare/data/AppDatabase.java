@@ -5,6 +5,8 @@ import android.content.Context;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.petcare.data.dao.ActivitySessionDao;
 import com.example.petcare.data.dao.FeedingLogDao;
@@ -52,6 +54,26 @@ import com.example.petcare.data.entities.WeightEntry;
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase instance;
 
+    /**
+     * Preserves existing user data from the old schema and only adds the new table.
+     */
+    public static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `reproductive_events` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`petId` INTEGER NOT NULL, " +
+                    "`eventType` TEXT, " +
+                    "`startDateEpochMillis` INTEGER NOT NULL, " +
+                    "`estimatedEndDateEpochMillis` INTEGER, " +
+                    "`resolutionDateEpochMillis` INTEGER, " +
+                    "`clinic` TEXT, " +
+                    "`symptomsObserved` TEXT, " +
+                    "`vetConsulted` INTEGER NOT NULL, " +
+                    "`notes` TEXT)");
+        }
+    };
+
     public abstract PetDao petDao();
     public abstract VetVisitDao vetVisitDao();
     public abstract VaccinationDao vaccinationDao();
@@ -73,7 +95,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     context.getApplicationContext(),
                                     AppDatabase.class,
                                     "petcare.db")
-                            .fallbackToDestructiveMigration()
+                            .addMigrations(MIGRATION_1_2)
                             .allowMainThreadQueries()
                             .build();
                 }
