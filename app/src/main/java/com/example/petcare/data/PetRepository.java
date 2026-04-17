@@ -78,8 +78,28 @@ public class PetRepository {
         return db.feedingLogDao().getForPet(petId);
     }
 
+    public List<MedicationLog> getMedicationLogs(long petId) {
+        return db.medicationLogDao().getForPet(petId);
+    }
+
     public List<ActivitySession> getActivitySessions(long petId) {
         return db.activitySessionDao().getForPet(petId);
+    }
+
+    public ActivitySession getLatestActivitySession(long petId) {
+        List<ActivitySession> items = getActivitySessions(petId);
+        return items.isEmpty() ? null : items.get(0);
+    }
+
+    public Vaccination getNextVaccinationDue(long petId) {
+        Vaccination next = null;
+        for (Vaccination vaccination : getVaccinations(petId)) {
+            if (vaccination.nextDueAt == null) continue;
+            if (next == null || vaccination.nextDueAt < next.nextDueAt) {
+                next = vaccination;
+            }
+        }
+        return next;
     }
 
     public List<WeightEntry> getWeightEntries(long petId) {
@@ -231,7 +251,16 @@ public class PetRepository {
         List<Object> items = new ArrayList<>();
         items.addAll(getVetVisits(petId));
         items.addAll(getVaccinations(petId));
+        items.addAll(getMedications(petId));
+        items.sort((left, right) -> Long.compare(getHealthItemTime(right), getHealthItemTime(left)));
         return items;
+    }
+
+    private long getHealthItemTime(Object item) {
+        if (item instanceof VetVisit) return ((VetVisit) item).visitDateEpochMillis;
+        if (item instanceof Vaccination) return ((Vaccination) item).administeredAt;
+        if (item instanceof Medication) return ((Medication) item).startDateEpochMillis;
+        return 0L;
     }
 
     public AppDatabase getDb() {

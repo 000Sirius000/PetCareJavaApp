@@ -9,7 +9,7 @@
         android:id="@+id/section_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Activity &amp; weight"
+        android:text="Activity"
         android:textSize="26sp"
         android:textStyle="bold" />
 
@@ -18,40 +18,42 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Weekly goal progress, exercise sessions and weight history"
+        android:text="Walking time and weight history"
         android:textSize="14sp" />
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/section_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" />
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/range_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
+
+    <com.example.petcare.ui.common.ActivityBarChartView
+        android:id="@+id/activity_chart"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_marginTop="16dp"
+        android:contentDescription="Walking time chart" />
 
     <com.example.petcare.ui.common.WeightChartView
         android:id="@+id/weight_chart"
         android:layout_width="match_parent"
         android:layout_height="220dp"
         android:layout_marginTop="16dp"
-        android:contentDescription="Weight history chart" />
+        android:contentDescription="Weight history chart"
+        android:visibility="gone" />
 
-    <LinearLayout
+    <Button
+        android:id="@+id/button_add_primary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/button_add_activity"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Add activity" />
-
-        <Space
-            android:layout_width="12dp"
-            android:layout_height="1dp" />
-
-        <Button
-            android:id="@+id/button_add_weight"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Add weight" />
-    </LinearLayout>
+        android:text="Add activity" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/section_recycler"
@@ -64,6 +66,6 @@
         android:id="@+id/section_empty"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="No activity or weight entries yet"
+        android:text="No entries yet"
         android:visibility="gone" />
 </LinearLayout>

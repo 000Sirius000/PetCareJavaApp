@@ -13,6 +13,7 @@ import com.example.petcare.ui.petdetail.sections.ActivityFragment;
 import com.example.petcare.ui.petdetail.sections.FeedingFragment;
 import com.example.petcare.ui.petdetail.sections.HealthFragment;
 import com.example.petcare.ui.petdetail.sections.SymptomsFragment;
+import com.example.petcare.util.AgeUtils;
 
 public class PetDetailActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
@@ -31,6 +32,7 @@ public class PetDetailActivity extends AppCompatActivity {
         binding.petDetailToolbar.setNavigationIcon(android.R.drawable.ic_menu_revert);
         binding.petDetailToolbar.setNavigationOnClickListener(v -> finish());
         binding.petDetailToolbar.setTitle(pet == null ? "Pet detail" : pet.name);
+        binding.petDetailToolbar.setSubtitle(pet == null ? "" : "Age: " + AgeUtils.fullAge(pet));
 
         if (savedInstanceState == null) {
             showFragment(HealthFragment.newInstance(petId));

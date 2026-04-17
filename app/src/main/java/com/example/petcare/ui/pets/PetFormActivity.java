@@ -14,8 +14,13 @@ import com.example.petcare.R;
 import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.Pet;
 import com.example.petcare.databinding.ActivityPetFormBinding;
+import com.example.petcare.ui.common.FormUiUtils;
+import com.example.petcare.util.AgeUtils;
 import com.example.petcare.util.StorageUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 public class PetFormActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
@@ -61,12 +66,19 @@ public class PetFormActivity extends AppCompatActivity {
         binding.toolbar.setNavigationIcon(android.R.drawable.ic_menu_revert);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
+        binding.inputAge.setKeyListener(null);
+        binding.inputAge.setFocusable(false);
+        binding.inputAge.setClickable(true);
+        binding.inputAge.setOnClickListener(v -> openBirthDatePicker());
+
         long petId = getIntent().getLongExtra(EXTRA_PET_ID, 0L);
         if (petId > 0) {
             editingPet = repository.getPet(petId);
             if (editingPet != null) {
                 populate();
             }
+        } else {
+            binding.textAgePreview.setText("Age will be calculated automatically");
         }
 
         binding.buttonPickPhoto.setOnClickListener(v -> imagePickerLauncher.launch(new String[]{"image/*"}));
@@ -97,6 +109,7 @@ public class PetFormActivity extends AppCompatActivity {
         binding.inputName.setText(editingPet.name);
         binding.inputBreed.setText(editingPet.breed);
         binding.inputAge.setText(editingPet.birthInfo);
+        updateAgePreview(editingPet.birthInfo);
         binding.inputGoalMinutes.setText(String.valueOf(editingPet.weeklyActivityGoalMinutes));
         selectSpinnerValue(binding.inputSpecies, editingPet.species);
         selectSpinnerValue(binding.inputSex, editingPet.sex);
@@ -109,6 +122,33 @@ public class PetFormActivity extends AppCompatActivity {
         binding.buttonArchiveRecover.setVisibility(android.view.View.VISIBLE);
         binding.buttonDelete.setVisibility(android.view.View.VISIBLE);
         binding.buttonArchiveRecover.setText(editingPet.archived ? R.string.recover : R.string.archive);
+    }
+
+    private void openBirthDatePicker() {
+        long initial = System.currentTimeMillis();
+        LocalDate parsed = editingPet == null ? null : AgeUtils.parseBirthDate(editingPet);
+        if (parsed != null) {
+            initial = parsed.atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli();
+        }
+        FormUiUtils.showDatePicker(this, initial, binding.inputAge, () -> {
+            String value = binding.inputAge.getText() == null ? "" : binding.inputAge.getText().toString().trim();
+            updateAgePreview(value);
+        });
+    }
+
+    private void updateAgePreview(String birthInfo) {
+        if (birthInfo == null || birthInfo.trim().isEmpty()) {
+            binding.textAgePreview.setText("Age will be calculated automatically");
+            return;
+        }
+        try {
+            LocalDate date = LocalDate.parse(birthInfo.trim());
+            binding.textAgePreview.setText("Age: " + AgeUtils.fullAge(date));
+        } catch (Exception e) {
+            binding.textAgePreview.setText("Use the date picker to choose a valid date");
+        }
     }
 
     private void capturePhoto() {
@@ -128,11 +168,21 @@ public class PetFormActivity extends AppCompatActivity {
         }
         binding.layoutName.setError(null);
 
+        String birthInfo = safe(binding.inputAge.getText() == null ? null : binding.inputAge.getText().toString());
+        if (!birthInfo.isEmpty()) {
+            try {
+                LocalDate.parse(birthInfo);
+            } catch (Exception e) {
+                toast("Please choose a valid date of birth");
+                return;
+            }
+        }
+
         Pet pet = editingPet == null ? new Pet() : editingPet;
         pet.name = name;
         pet.species = binding.inputSpecies.getSelectedItem().toString();
         pet.breed = safe(binding.inputBreed.getText() == null ? null : binding.inputBreed.getText().toString());
-        pet.birthInfo = safe(binding.inputAge.getText() == null ? null : binding.inputAge.getText().toString());
+        pet.birthInfo = birthInfo;
         pet.sex = binding.inputSex.getSelectedItem().toString();
         pet.photoUri = savedPhotoUri;
         pet.weeklyActivityGoalMinutes = parseInt(binding.inputGoalMinutes.getText() == null ? null : binding.inputGoalMinutes.getText().toString(), 180);

@@ -40,6 +40,8 @@ public class DefaultSymptomSeeder {
         insert(database, "Behaviour", "Anxiety");
         insert(database, "Behaviour", "Excessive vocalisation");
         insert(database, "Behaviour", "Hiding");
+        insert(database, "Behaviour", "Nesting behaviour");
+        insert(database, "Behaviour", "Mothering behaviour");
 
         insert(database, "Urinary", "Frequent urination");
         insert(database, "Urinary", "Straining");
@@ -48,6 +50,10 @@ public class DefaultSymptomSeeder {
         insert(database, "Other", "Fever (subjective)");
         insert(database, "Other", "Weight change");
         insert(database, "Other", "Bad breath");
+        insert(database, "Reproductive", "Vulval swelling");
+        insert(database, "Reproductive", "Bloody discharge");
+        insert(database, "Reproductive", "Clear discharge");
+        insert(database, "Reproductive", "Milk production");
     }
 
     private static void insert(AppDatabase database, String group, String name) {

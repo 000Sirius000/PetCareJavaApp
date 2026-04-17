@@ -18,18 +18,34 @@ import com.example.petcare.data.entities.ActivitySession;
 import com.example.petcare.data.entities.Pet;
 import com.example.petcare.data.entities.WeightEntry;
 import com.example.petcare.databinding.FragmentActivitySectionBinding;
+import com.example.petcare.ui.common.ActivityBarChartView;
 import com.example.petcare.ui.common.SimpleRowAdapter;
 import com.example.petcare.ui.forms.ActivitySessionFormActivity;
 import com.example.petcare.ui.forms.WeightEntryFormActivity;
 import com.example.petcare.util.FormatUtils;
+import com.google.android.material.tabs.TabLayout;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZoneId;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ActivityFragment extends Fragment {
     private static final String ARG_PET_ID = "pet_id";
+    private static final int TAB_ACTIVITY = 0;
+    private static final int TAB_WEIGHT = 1;
+    private static final int RANGE_WEEK = 0;
+    private static final int RANGE_MONTH = 1;
+    private static final int RANGE_YEAR = 2;
 
     private long petId;
+    private int selectedTab = TAB_ACTIVITY;
+    private int selectedRange = RANGE_WEEK;
+
     private FragmentActivitySectionBinding binding;
     private PetRepository repository;
     private SimpleRowAdapter adapter;
@@ -57,10 +73,12 @@ public class ActivityFragment extends Fragment {
             @Override
             public String title(Object item) {
                 if (item instanceof ActivitySession) {
-                    return ((ActivitySession) item).activityType + " • " + ((ActivitySession) item).durationMinutes + " min";
+                    ActivitySession session = (ActivitySession) item;
+                    return session.activityType + " • " + session.durationMinutes + " min";
                 }
                 if (item instanceof WeightEntry) {
-                    return "Weight • " + ((WeightEntry) item).weightValue + " " + ((WeightEntry) item).unit;
+                    WeightEntry entry = (WeightEntry) item;
+                    return "Weight • " + entry.weightValue + " " + entry.unit;
                 }
                 return "";
             }
@@ -91,6 +109,9 @@ public class ActivityFragment extends Fragment {
                 }
                 if (item instanceof WeightEntry) {
                     WeightEntry entry = (WeightEntry) item;
+                    if (entry.healthyMin == null || entry.healthyMax == null) {
+                        return "Healthy range: not set";
+                    }
                     return "Healthy range: " + entry.healthyMin + " - " + entry.healthyMax + " " + entry.unit;
                 }
                 return "";
@@ -113,39 +134,183 @@ public class ActivityFragment extends Fragment {
 
         binding.sectionRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.sectionRecycler.setAdapter(adapter);
-        binding.buttonAddActivity.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), ActivitySessionFormActivity.class);
-            intent.putExtra(ActivitySessionFormActivity.EXTRA_PET_ID, petId);
-            formLauncher.launch(intent);
+
+        binding.sectionTabs.addTab(binding.sectionTabs.newTab().setText("Activity"));
+        binding.sectionTabs.addTab(binding.sectionTabs.newTab().setText("Weight"));
+        binding.sectionTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                selectedTab = tab.getPosition();
+                reload();
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+                selectedTab = tab.getPosition();
+                reload();
+            }
         });
-        binding.buttonAddWeight.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), WeightEntryFormActivity.class);
-            intent.putExtra(WeightEntryFormActivity.EXTRA_PET_ID, petId);
-            formLauncher.launch(intent);
+
+        binding.rangeTabs.addTab(binding.rangeTabs.newTab().setText("Week"));
+        binding.rangeTabs.addTab(binding.rangeTabs.newTab().setText("Month"));
+        binding.rangeTabs.addTab(binding.rangeTabs.newTab().setText("Year"));
+        binding.rangeTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                selectedRange = tab.getPosition();
+                if (selectedTab == TAB_ACTIVITY) {
+                    reload();
+                }
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+                selectedRange = tab.getPosition();
+                if (selectedTab == TAB_ACTIVITY) {
+                    reload();
+                }
+            }
         });
+
+        binding.buttonAddPrimary.setOnClickListener(v -> {
+            if (selectedTab == TAB_ACTIVITY) {
+                Intent intent = new Intent(requireContext(), ActivitySessionFormActivity.class);
+                intent.putExtra(ActivitySessionFormActivity.EXTRA_PET_ID, petId);
+                formLauncher.launch(intent);
+            } else {
+                Intent intent = new Intent(requireContext(), WeightEntryFormActivity.class);
+                intent.putExtra(WeightEntryFormActivity.EXTRA_PET_ID, petId);
+                formLauncher.launch(intent);
+            }
+        });
+
         reload();
         return binding.getRoot();
     }
 
     private void reload() {
-        List<Object> items = new ArrayList<>();
-        items.addAll(repository.getActivitySessions(petId));
-        items.addAll(repository.getWeightEntries(petId));
-        items.sort((left, right) -> Long.compare(getTime(right), getTime(left)));
-        adapter.submitList(items);
-        binding.sectionEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
-        binding.weightChart.setEntries(repository.getWeightEntries(petId));
-
-        Pet pet = repository.getPet(petId);
-        if (pet != null) {
-            int progress = repository.getWeeklyActivityProgressPercent(petId, pet.weeklyActivityGoalMinutes);
-            binding.sectionSubtitle.setText("Weekly goal progress: " + progress + "%");
+        if (selectedTab == TAB_ACTIVITY) {
+            showActivitySection();
+        } else {
+            showWeightSection();
         }
     }
 
-    private long getTime(Object item) {
-        if (item instanceof ActivitySession) return ((ActivitySession) item).sessionDateEpochMillis;
-        if (item instanceof WeightEntry) return ((WeightEntry) item).measuredAt;
-        return 0L;
+    private void showActivitySection() {
+        binding.sectionTitle.setText("Activity");
+        binding.buttonAddPrimary.setText("Add activity");
+        binding.rangeTabs.setVisibility(View.VISIBLE);
+        binding.activityChart.setVisibility(View.VISIBLE);
+        binding.weightChart.setVisibility(View.GONE);
+
+        List<ActivitySession> sessions = repository.getActivitySessions(petId);
+        adapter.submitList(new ArrayList<>(sessions));
+        binding.sectionEmpty.setText("No activity entries yet");
+        binding.sectionEmpty.setVisibility(sessions.isEmpty() ? View.VISIBLE : View.GONE);
+
+        List<ActivityBarChartView.BarPoint> points = buildChartPoints(sessions);
+        binding.activityChart.setPoints(points);
+
+        int totalMinutes = 0;
+        int sessionCount = 0;
+        for (ActivityBarChartView.BarPoint point : points) {
+            totalMinutes += point.totalMinutes;
+            sessionCount += point.sessionCount;
+        }
+
+        Pet pet = repository.getPet(petId);
+        int progress = pet == null ? 0 : repository.getWeeklyActivityProgressPercent(petId, pet.weeklyActivityGoalMinutes);
+        String rangeLabel = selectedRange == RANGE_WEEK ? "week" : selectedRange == RANGE_MONTH ? "month" : "year";
+        binding.sectionSubtitle.setText(
+                "Walk summary for " + rangeLabel + ": " + totalMinutes + " min • " + sessionCount + " sessions • Goal progress " + progress + "%"
+        );
+    }
+
+    private void showWeightSection() {
+        binding.sectionTitle.setText("Weight");
+        binding.sectionSubtitle.setText("Weight history and healthy-range markers");
+        binding.buttonAddPrimary.setText("Add weight");
+        binding.rangeTabs.setVisibility(View.GONE);
+        binding.activityChart.setVisibility(View.GONE);
+        binding.weightChart.setVisibility(View.VISIBLE);
+
+        List<WeightEntry> weights = repository.getWeightEntries(petId);
+        adapter.submitList(new ArrayList<>(weights));
+        binding.sectionEmpty.setText("No weight entries yet");
+        binding.sectionEmpty.setVisibility(weights.isEmpty() ? View.VISIBLE : View.GONE);
+        binding.weightChart.setEntries(weights);
+    }
+
+    private List<ActivityBarChartView.BarPoint> buildChartPoints(List<ActivitySession> sessions) {
+        ZoneId zoneId = ZoneId.systemDefault();
+        LocalDate today = LocalDate.now(zoneId);
+        List<ActivityBarChartView.BarPoint> result = new ArrayList<>();
+
+        if (selectedRange == RANGE_WEEK) {
+            for (int offset = 6; offset >= 0; offset--) {
+                LocalDate date = today.minusDays(offset);
+                int totalMinutes = 0;
+                int sessionCount = 0;
+                for (ActivitySession session : sessions) {
+                    if (!"Walk".equalsIgnoreCase(session.activityType)) continue;
+                    LocalDate sessionDate = Instant.ofEpochMilli(session.sessionDateEpochMillis).atZone(zoneId).toLocalDate();
+                    if (sessionDate.equals(date)) {
+                        totalMinutes += session.durationMinutes;
+                        sessionCount++;
+                    }
+                }
+                result.add(new ActivityBarChartView.BarPoint(
+                        date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.getDefault()) + " " + date.getDayOfMonth(),
+                        totalMinutes,
+                        sessionCount
+                ));
+            }
+            return result;
+        }
+
+        if (selectedRange == RANGE_MONTH) {
+            LocalDate firstDay = today.withDayOfMonth(1);
+            int length = today.lengthOfMonth();
+            for (int day = 1; day <= length; day++) {
+                LocalDate date = firstDay.withDayOfMonth(day);
+                int totalMinutes = 0;
+                int sessionCount = 0;
+                for (ActivitySession session : sessions) {
+                    if (!"Walk".equalsIgnoreCase(session.activityType)) continue;
+                    LocalDate sessionDate = Instant.ofEpochMilli(session.sessionDateEpochMillis).atZone(zoneId).toLocalDate();
+                    if (sessionDate.equals(date)) {
+                        totalMinutes += session.durationMinutes;
+                        sessionCount++;
+                    }
+                }
+                result.add(new ActivityBarChartView.BarPoint(String.valueOf(day), totalMinutes, sessionCount));
+            }
+            return result;
+        }
+
+        int currentYear = today.getYear();
+        for (int monthValue = 1; monthValue <= 12; monthValue++) {
+            int totalMinutes = 0;
+            int sessionCount = 0;
+            for (ActivitySession session : sessions) {
+                if (!"Walk".equalsIgnoreCase(session.activityType)) continue;
+                LocalDate sessionDate = Instant.ofEpochMilli(session.sessionDateEpochMillis).atZone(zoneId).toLocalDate();
+                if (sessionDate.getYear() == currentYear && sessionDate.getMonthValue() == monthValue) {
+                    totalMinutes += session.durationMinutes;
+                    sessionCount++;
+                }
+            }
+            String label = Month.of(monthValue).getDisplayName(TextStyle.SHORT, Locale.getDefault());
+            result.add(new ActivityBarChartView.BarPoint(label, totalMinutes, sessionCount));
+        }
+        return result;
     }
 }

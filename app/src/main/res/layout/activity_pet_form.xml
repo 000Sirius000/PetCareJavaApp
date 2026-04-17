@@ -93,8 +93,17 @@
                 android:id="@+id/input_age"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/age_or_dob" />
+                android:focusable="false"
+                android:clickable="true"
+                android:hint="@string/date_of_birth" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/text_age_preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Age will be calculated automatically" />
 
         <Spinner
             android:id="@+id/input_sex"
