@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/section_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Activity"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/section_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Walking bars in hours with quick filters"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <Button android:id="@+id/button_week" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Week" />
+        <Space android:layout_width="8dp" android:layout_height="1dp" />
+        <Button android:id="@+id/button_month" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Month" />
+        <Space android:layout_width="8dp" android:layout_height="1dp" />
+        <Button android:id="@+id/button_year" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Year" />
+    </LinearLayout>
+
+    <com.example.petcare.ui.common.ActivityHoursBarChartView
+        android:id="@+id/activity_chart"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/button_add_activity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Add activity" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/section_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/section_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No activity entries yet"
+        android:visibility="gone" />
+</LinearLayout>

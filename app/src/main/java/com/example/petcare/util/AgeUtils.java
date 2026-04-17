@@ -40,11 +40,11 @@ public final class AgeUtils {
             return "Born today";
         }
 
-        if (period.getYears() <= 0 && period.getMonths() <= 0) {
+        if (period.getYears() == 0 && period.getMonths() == 0) {
             return period.getDays() + (period.getDays() == 1 ? " day old" : " days old");
         }
 
-        if (period.getYears() <= 0) {
+        if (period.getYears() == 0) {
             StringBuilder value = new StringBuilder();
             if (period.getMonths() > 0) {
                 value.append(period.getMonths()).append(period.getMonths() == 1 ? " month" : " months");
@@ -86,21 +86,19 @@ public final class AgeUtils {
             return "Born today";
         }
 
-        if (period.getYears() <= 0 && period.getMonths() <= 0) {
-            return period.getDays() + " d";
+        StringBuilder value = new StringBuilder();
+        if (period.getYears() > 0) {
+            value.append(period.getYears()).append("y");
         }
-
-        if (period.getYears() <= 0) {
-            if (period.getDays() > 0) {
-                return period.getMonths() + " mo " + period.getDays() + " d";
-            }
-            return period.getMonths() + " mo";
+        if (period.getMonths() > 0 || period.getYears() > 0) {
+            if (value.length() > 0) value.append(", ");
+            value.append(period.getMonths()).append("m");
         }
-
-        if (period.getMonths() > 0) {
-            return period.getYears() + " yrs " + period.getMonths() + " mo";
+        if (period.getDays() > 0 || value.length() == 0) {
+            if (value.length() > 0) value.append(", ");
+            value.append(period.getDays()).append("d");
         }
-        return period.getYears() + " yrs";
+        return value.toString();
     }
 
     public static String compactAgeWithBreed(Pet pet) {

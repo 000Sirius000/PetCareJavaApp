@@ -16,8 +16,7 @@
     <string name="pet_name">Pet name</string>
     <string name="species">Species</string>
     <string name="breed">Breed</string>
-    <string name="age_or_dob">Date of birth</string>
-    <string name="date_of_birth">Date of birth</string>
+    <string name="age_or_dob">Date of birth / age</string>
     <string name="sex">Sex</string>
     <string name="no_data">No data yet</string>
     <string name="choose_photo">Choose photo</string>

@@ -47,13 +47,14 @@ public class DefaultSymptomSeeder {
         insert(database, "Urinary", "Straining");
         insert(database, "Urinary", "Blood in urine");
 
-        insert(database, "Other", "Fever (subjective)");
-        insert(database, "Other", "Weight change");
-        insert(database, "Other", "Bad breath");
         insert(database, "Reproductive", "Vulval swelling");
         insert(database, "Reproductive", "Bloody discharge");
         insert(database, "Reproductive", "Clear discharge");
         insert(database, "Reproductive", "Milk production");
+
+        insert(database, "Other", "Fever (subjective)");
+        insert(database, "Other", "Weight change");
+        insert(database, "Other", "Bad breath");
     }
 
     private static void insert(AppDatabase database, String group, String name) {

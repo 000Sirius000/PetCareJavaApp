@@ -15,39 +15,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PetCare">
-        <activity
-            android:name=".ui.forms.ActivitySessionFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.forms.FeedingScheduleFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.forms.MedicationFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.forms.SymptomEntryFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.forms.WeightEntryFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.forms.VaccinationFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.forms.VetVisitFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.settings.SettingsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.petdetail.PetDetailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.pets.PetFormActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.main.MainActivity"
-            android:exported="true">
+        <activity android:name=".ui.forms.ReproductiveEventFormActivity" android:exported="false" />
+        <activity android:name=".ui.forms.ActivitySessionFormActivity" android:exported="false" />
+        <activity android:name=".ui.forms.FeedingScheduleFormActivity" android:exported="false" />
+        <activity android:name=".ui.forms.MedicationFormActivity" android:exported="false" />
+        <activity android:name=".ui.forms.SymptomEntryFormActivity" android:exported="false" />
+        <activity android:name=".ui.forms.WeightEntryFormActivity" android:exported="false" />
+        <activity android:name=".ui.forms.VaccinationFormActivity" android:exported="false" />
+        <activity android:name=".ui.forms.VetVisitFormActivity" android:exported="false" />
+        <activity android:name=".ui.settings.SettingsActivity" android:exported="false" />
+        <activity android:name=".ui.petdetail.PetDetailActivity" android:exported="false" />
+        <activity android:name=".ui.pets.PetFormActivity" android:exported="false" />
+        <activity android:name=".ui.main.MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -64,23 +43,13 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <receiver
-            android:name=".reminders.ReminderReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".reminders.ReminderActionReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".reminders.BootReceiver"
-            android:enabled="true"
-            android:exported="true">
+        <receiver android:name=".reminders.ReminderReceiver" android:exported="false" />
+        <receiver android:name=".reminders.ReminderActionReceiver" android:exported="false" />
+        <receiver android:name=".reminders.BootReceiver" android:enabled="true" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
     </application>
-
 </manifest>

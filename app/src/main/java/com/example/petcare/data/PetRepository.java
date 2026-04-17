@@ -8,11 +8,13 @@ import com.example.petcare.data.entities.FeedingSchedule;
 import com.example.petcare.data.entities.Medication;
 import com.example.petcare.data.entities.MedicationLog;
 import com.example.petcare.data.entities.Pet;
+import com.example.petcare.data.entities.ReproductiveEvent;
 import com.example.petcare.data.entities.SymptomEntry;
 import com.example.petcare.data.entities.SymptomTag;
 import com.example.petcare.data.entities.Vaccination;
 import com.example.petcare.data.entities.VetVisit;
 import com.example.petcare.data.entities.WeightEntry;
+import com.example.petcare.util.FormatUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,67 +26,29 @@ public class PetRepository {
         this.db = AppDatabase.getInstance(context);
     }
 
-    public List<Pet> getActivePets() {
-        return db.petDao().getActivePets();
-    }
-
-    public List<Pet> getArchivedPets() {
-        return db.petDao().getArchivedPets();
-    }
-
-    public Pet getPet(long petId) {
-        return db.petDao().getById(petId);
-    }
+    public List<Pet> getActivePets() { return db.petDao().getActivePets(); }
+    public List<Pet> getArchivedPets() { return db.petDao().getArchivedPets(); }
+    public Pet getPet(long petId) { return db.petDao().getById(petId); }
 
     public long savePet(Pet pet) {
         if (pet.id == 0) {
             pet.createdAt = System.currentTimeMillis();
             return db.petDao().insert(pet);
-        } else {
-            db.petDao().update(pet);
-            return pet.id;
         }
+        db.petDao().update(pet);
+        return pet.id;
     }
 
-    public void archivePet(long petId) {
-        db.petDao().archive(petId);
-    }
-
-    public void recoverPet(long petId) {
-        db.petDao().recover(petId);
-    }
-
-    public void deletePet(Pet pet) {
-        db.petDao().delete(pet);
-    }
-
-    public List<VetVisit> getVetVisits(long petId) {
-        return db.vetVisitDao().getForPet(petId);
-    }
-
-    public List<Vaccination> getVaccinations(long petId) {
-        return db.vaccinationDao().getForPet(petId);
-    }
-
-    public List<Medication> getMedications(long petId) {
-        return db.medicationDao().getForPet(petId);
-    }
-
-    public List<FeedingSchedule> getFeedingSchedules(long petId) {
-        return db.feedingScheduleDao().getForPet(petId);
-    }
-
-    public List<FeedingLog> getFeedingLogs(long petId) {
-        return db.feedingLogDao().getForPet(petId);
-    }
-
-    public List<MedicationLog> getMedicationLogs(long petId) {
-        return db.medicationLogDao().getForPet(petId);
-    }
-
-    public List<ActivitySession> getActivitySessions(long petId) {
-        return db.activitySessionDao().getForPet(petId);
-    }
+    public void archivePet(long petId) { db.petDao().archive(petId); }
+    public void recoverPet(long petId) { db.petDao().recover(petId); }
+    public void deletePet(Pet pet) { db.petDao().delete(pet); }
+    public List<VetVisit> getVetVisits(long petId) { return db.vetVisitDao().getForPet(petId); }
+    public List<Vaccination> getVaccinations(long petId) { return db.vaccinationDao().getForPet(petId); }
+    public List<Medication> getMedications(long petId) { return db.medicationDao().getForPet(petId); }
+    public List<FeedingSchedule> getFeedingSchedules(long petId) { return db.feedingScheduleDao().getForPet(petId); }
+    public List<FeedingLog> getFeedingLogs(long petId) { return db.feedingLogDao().getForPet(petId); }
+    public List<MedicationLog> getMedicationLogs(long petId) { return db.medicationLogDao().getForPet(petId); }
+    public List<ActivitySession> getActivitySessions(long petId) { return db.activitySessionDao().getForPet(petId); }
 
     public ActivitySession getLatestActivitySession(long petId) {
         List<ActivitySession> items = getActivitySessions(petId);
@@ -102,22 +66,13 @@ public class PetRepository {
         return next;
     }
 
-    public List<WeightEntry> getWeightEntries(long petId) {
-        return db.weightEntryDao().getForPet(petId);
-    }
-
-    public List<SymptomEntry> getSymptomEntries(long petId) {
-        return db.symptomEntryDao().getForPet(petId);
-    }
-
-    public List<SymptomTag> getSymptomTags() {
-        return db.symptomTagDao().getAll();
-    }
+    public List<WeightEntry> getWeightEntries(long petId) { return db.weightEntryDao().getForPet(petId); }
+    public List<SymptomEntry> getSymptomEntries(long petId) { return db.symptomEntryDao().getForPet(petId); }
+    public List<SymptomTag> getSymptomTags() { return db.symptomTagDao().getAll(); }
+    public List<ReproductiveEvent> getReproductiveEvents(long petId) { return db.reproductiveEventDao().getForPet(petId); }
 
     public int getWeeklyActivityProgressPercent(long petId, int goalMinutes) {
-        if (goalMinutes <= 0) {
-            return 0;
-        }
+        if (goalMinutes <= 0) return 0;
         long sevenDaysAgo = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000);
         Integer done = db.activitySessionDao().getMinutesSince(petId, sevenDaysAgo);
         int minutes = done == null ? 0 : done;
@@ -125,26 +80,35 @@ public class PetRepository {
     }
 
     public int getPendingReminderCount(long petId) {
-        int count = 0;
-        count += db.feedingScheduleDao().getForPet(petId).size();
+        int count = db.feedingScheduleDao().getForPet(petId).size();
         for (Medication medication : db.medicationDao().getForPet(petId)) {
-            if (!medication.archived) {
-                count++;
-            }
+            if (!medication.archived) count++;
         }
         long leadTime = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000);
         for (Vaccination vaccination : db.vaccinationDao().getForPet(petId)) {
-            if (vaccination.nextDueAt != null && vaccination.nextDueAt <= leadTime) {
-                count++;
-            }
+            if (vaccination.nextDueAt != null && vaccination.nextDueAt <= leadTime) count++;
         }
         return count;
     }
 
-    public long insertDemoDataIfEmpty() {
-        if (!getActivePets().isEmpty()) {
-            return getActivePets().get(0).id;
+    public String getLastActivitySummary(long petId) {
+        List<ActivitySession> sessions = getActivitySessions(petId);
+        if (sessions.isEmpty()) return "No activity yet";
+        ActivitySession item = sessions.get(0);
+        return item.activityType + " • " + item.durationMinutes + " min";
+    }
+
+    public String getNextVaccinationSummary(long petId) {
+        Vaccination best = null;
+        for (Vaccination item : getVaccinations(petId)) {
+            if (item.nextDueAt == null) continue;
+            if (best == null || item.nextDueAt < best.nextDueAt) best = item;
         }
+        return best == null ? "No due vaccine" : best.vaccineName + " • " + FormatUtils.date(best.nextDueAt);
+    }
+
+    public long insertDemoDataIfEmpty() {
+        if (!getActivePets().isEmpty()) return getActivePets().get(0).id;
 
         Pet pet = new Pet();
         pet.name = "Milo";
@@ -180,12 +144,13 @@ public class PetRepository {
         schedule.foodType = "Dry food";
         schedule.portion = "100";
         schedule.portionUnit = "g";
-        db.feedingScheduleDao().insert(schedule);
+        long scheduleId = db.feedingScheduleDao().insert(schedule);
+        logFeeding(petId, scheduleId, schedule.mealName, schedule.portion + " " + schedule.portionUnit);
 
         ActivitySession session = new ActivitySession();
         session.petId = petId;
         session.activityType = "Walk";
-        session.durationMinutes = 35;
+        session.durationMinutes = 95;
         session.distance = 2.8;
         session.distanceUnit = "km";
         session.sessionDateEpochMillis = System.currentTimeMillis() - 2L * 24 * 60 * 60 * 1000;
@@ -252,18 +217,11 @@ public class PetRepository {
         items.addAll(getVetVisits(petId));
         items.addAll(getVaccinations(petId));
         items.addAll(getMedications(petId));
-        items.sort((left, right) -> Long.compare(getHealthItemTime(right), getHealthItemTime(left)));
+        items.addAll(getWeightEntries(petId));
+        items.addAll(getSymptomEntries(petId));
+        items.addAll(getReproductiveEvents(petId));
         return items;
     }
 
-    private long getHealthItemTime(Object item) {
-        if (item instanceof VetVisit) return ((VetVisit) item).visitDateEpochMillis;
-        if (item instanceof Vaccination) return ((Vaccination) item).administeredAt;
-        if (item instanceof Medication) return ((Medication) item).startDateEpochMillis;
-        return 0L;
-    }
-
-    public AppDatabase getDb() {
-        return db;
-    }
+    public AppDatabase getDb() { return db; }
 }

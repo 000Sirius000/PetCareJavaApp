@@ -12,6 +12,7 @@ import com.example.petcare.data.dao.FeedingScheduleDao;
 import com.example.petcare.data.dao.MedicationDao;
 import com.example.petcare.data.dao.MedicationLogDao;
 import com.example.petcare.data.dao.PetDao;
+import com.example.petcare.data.dao.ReproductiveEventDao;
 import com.example.petcare.data.dao.SymptomEntryDao;
 import com.example.petcare.data.dao.SymptomTagDao;
 import com.example.petcare.data.dao.VaccinationDao;
@@ -23,6 +24,7 @@ import com.example.petcare.data.entities.FeedingSchedule;
 import com.example.petcare.data.entities.Medication;
 import com.example.petcare.data.entities.MedicationLog;
 import com.example.petcare.data.entities.Pet;
+import com.example.petcare.data.entities.ReproductiveEvent;
 import com.example.petcare.data.entities.SymptomEntry;
 import com.example.petcare.data.entities.SymptomTag;
 import com.example.petcare.data.entities.Vaccination;
@@ -41,9 +43,10 @@ import com.example.petcare.data.entities.WeightEntry;
                 ActivitySession.class,
                 WeightEntry.class,
                 SymptomTag.class,
-                SymptomEntry.class
+                SymptomEntry.class,
+                ReproductiveEvent.class
         },
-        version = 1,
+        version = 2,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -60,6 +63,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract WeightEntryDao weightEntryDao();
     public abstract SymptomTagDao symptomTagDao();
     public abstract SymptomEntryDao symptomEntryDao();
+    public abstract ReproductiveEventDao reproductiveEventDao();
 
     public static AppDatabase getInstance(Context context) {
         if (instance == null) {

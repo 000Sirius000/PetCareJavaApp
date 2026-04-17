@@ -74,9 +74,7 @@ public class PetFormActivity extends AppCompatActivity {
         long petId = getIntent().getLongExtra(EXTRA_PET_ID, 0L);
         if (petId > 0) {
             editingPet = repository.getPet(petId);
-            if (editingPet != null) {
-                populate();
-            }
+            if (editingPet != null) populate();
         } else {
             binding.textAgePreview.setText("Age will be calculated automatically");
         }
@@ -93,13 +91,11 @@ public class PetFormActivity extends AppCompatActivity {
     }
 
     private void setupSpinners() {
-        ArrayAdapter<CharSequence> speciesAdapter = ArrayAdapter.createFromResource(
-                this, R.array.species_options, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> speciesAdapter = ArrayAdapter.createFromResource(this, R.array.species_options, android.R.layout.simple_spinner_item);
         speciesAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.inputSpecies.setAdapter(speciesAdapter);
 
-        ArrayAdapter<CharSequence> sexAdapter = ArrayAdapter.createFromResource(
-                this, R.array.sex_options, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> sexAdapter = ArrayAdapter.createFromResource(this, R.array.sex_options, android.R.layout.simple_spinner_item);
         sexAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.inputSex.setAdapter(sexAdapter);
     }
@@ -113,12 +109,10 @@ public class PetFormActivity extends AppCompatActivity {
         binding.inputGoalMinutes.setText(String.valueOf(editingPet.weeklyActivityGoalMinutes));
         selectSpinnerValue(binding.inputSpecies, editingPet.species);
         selectSpinnerValue(binding.inputSex, editingPet.sex);
-
         savedPhotoUri = editingPet.photoUri;
         if (savedPhotoUri != null && !savedPhotoUri.isEmpty()) {
             binding.imagePetPhoto.setImageURI(Uri.parse(savedPhotoUri));
         }
-
         binding.buttonArchiveRecover.setVisibility(android.view.View.VISIBLE);
         binding.buttonDelete.setVisibility(android.view.View.VISIBLE);
         binding.buttonArchiveRecover.setText(editingPet.archived ? R.string.recover : R.string.archive);
@@ -128,9 +122,7 @@ public class PetFormActivity extends AppCompatActivity {
         long initial = System.currentTimeMillis();
         LocalDate parsed = editingPet == null ? null : AgeUtils.parseBirthDate(editingPet);
         if (parsed != null) {
-            initial = parsed.atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli();
+            initial = parsed.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
         }
         FormUiUtils.showDatePicker(this, initial, binding.inputAge, () -> {
             String value = binding.inputAge.getText() == null ? "" : binding.inputAge.getText().toString().trim();
@@ -203,8 +195,7 @@ public class PetFormActivity extends AppCompatActivity {
                         repository.recoverPet(editingPet.id);
                         setResult(RESULT_OK);
                         finish();
-                    })
-                    .show();
+                    }).show();
         } else {
             new MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.warning)
@@ -214,8 +205,7 @@ public class PetFormActivity extends AppCompatActivity {
                         repository.archivePet(editingPet.id);
                         setResult(RESULT_OK);
                         finish();
-                    })
-                    .show();
+                    }).show();
         }
     }
 
@@ -229,8 +219,7 @@ public class PetFormActivity extends AppCompatActivity {
                     repository.deletePet(editingPet);
                     setResult(RESULT_OK);
                     finish();
-                })
-                .show();
+                }).show();
     }
 
     private void selectSpinnerValue(android.widget.Spinner spinner, String value) {
@@ -244,18 +233,11 @@ public class PetFormActivity extends AppCompatActivity {
     }
 
     private int parseInt(String value, int fallback) {
-        try {
-            return Integer.parseInt(safe(value));
-        } catch (Exception e) {
-            return fallback;
-        }
+        try { return Integer.parseInt(safe(value)); }
+        catch (Exception e) { return fallback; }
     }
 
-    private String safe(String value) {
-        return value == null ? "" : value.trim();
-    }
+    private String safe(String value) { return value == null ? "" : value.trim(); }
 
-    private void toast(String value) {
-        Toast.makeText(this, value, Toast.LENGTH_SHORT).show();
-    }
+    private void toast(String value) { Toast.makeText(this, value, Toast.LENGTH_SHORT).show(); }
 }

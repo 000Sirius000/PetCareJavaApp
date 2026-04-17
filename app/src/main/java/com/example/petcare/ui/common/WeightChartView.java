@@ -8,6 +8,7 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import com.example.petcare.data.entities.WeightEntry;
+import com.example.petcare.util.FormatUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,21 +20,24 @@ public class WeightChartView extends View {
     private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint pointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint tickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private List<WeightEntry> entries = new ArrayList<>();
 
     public WeightChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
         axisPaint.setColor(Color.GRAY);
         axisPaint.setStrokeWidth(3f);
-        linePaint.setColor(0xFF7E57C2);
+        linePaint.setColor(0xFF4CAF50);
         linePaint.setStrokeWidth(5f);
-        pointPaint.setColor(0xFFFFB74D);
-        labelPaint.setColor(Color.GRAY);
-        labelPaint.setTextSize(28f);
+        pointPaint.setColor(0xFF2E7D32);
+        labelPaint.setColor(Color.DKGRAY);
+        labelPaint.setTextSize(26f);
+        tickPaint.setColor(Color.LTGRAY);
+        tickPaint.setStrokeWidth(2f);
     }
 
     public void setEntries(List<WeightEntry> items) {
-        entries = new ArrayList<>(items);
+        entries = new ArrayList<>(items == null ? new ArrayList<>() : items);
         Collections.sort(entries, Comparator.comparingLong(item -> item.measuredAt));
         invalidate();
     }
@@ -41,10 +45,10 @@ public class WeightChartView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        int left = 70;
-        int right = getWidth() - 30;
-        int top = 20;
-        int bottom = getHeight() - 50;
+        int left = 90;
+        int right = getWidth() - 20;
+        int top = 30;
+        int bottom = getHeight() - 70;
         canvas.drawLine(left, bottom, right, bottom, axisPaint);
         canvas.drawLine(left, top, left, bottom, axisPaint);
 
@@ -64,17 +68,16 @@ public class WeightChartView extends View {
             min -= 0.5;
         }
 
+        float prevX = -1f;
+        float prevY = -1f;
         int count = entries.size();
-        float prevX = -1;
-        float prevY = -1;
         for (int i = 0; i < count; i++) {
             WeightEntry entry = entries.get(i);
             float x = left + ((right - left) * (count == 1 ? 0.5f : (i / (float) (count - 1))));
             float normalized = (float) ((entry.weightValue - min) / (max - min));
             float y = bottom - normalized * (bottom - top);
-            if (i > 0) {
-                canvas.drawLine(prevX, prevY, x, y, linePaint);
-            }
+
+            if (i > 0) canvas.drawLine(prevX, prevY, x, y, linePaint);
             canvas.drawCircle(x, y, 8f, pointPaint);
             prevX = x;
             prevY = y;
@@ -82,5 +85,22 @@ public class WeightChartView extends View {
 
         canvas.drawText(String.format(java.util.Locale.getDefault(), "%.1f", max), 10, top + 10, labelPaint);
         canvas.drawText(String.format(java.util.Locale.getDefault(), "%.1f", min), 10, bottom, labelPaint);
+
+        int[] labelIndexes = labelIndexes(count);
+        for (int index : labelIndexes) {
+            if (index < 0 || index >= count) continue;
+            WeightEntry entry = entries.get(index);
+            float x = left + ((right - left) * (count == 1 ? 0.5f : (index / (float) (count - 1))));
+            canvas.drawLine(x, bottom, x, bottom + 10, tickPaint);
+            String label = FormatUtils.shortDate(entry.measuredAt);
+            canvas.drawText(label, x - 28, bottom + 34, labelPaint);
+        }
+    }
+
+    private int[] labelIndexes(int count) {
+        if (count <= 1) return new int[]{0};
+        if (count == 2) return new int[]{0, 1};
+        if (count == 3) return new int[]{0, 1, 2};
+        return new int[]{0, count / 3, (count * 2) / 3, count - 1};
     }
 }

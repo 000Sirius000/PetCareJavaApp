@@ -41,7 +41,8 @@ public class PetsFragment extends Fragment {
                     startActivity(intent);
                 },
                 this::editPet,
-                repository
+                repository,
+                PetAdapter.Mode.PETS
         );
 
         binding.petsRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -54,7 +55,6 @@ public class PetsFragment extends Fragment {
             showArchivedPets();
             return true;
         });
-
         reload();
         return binding.getRoot();
     }
@@ -82,9 +82,7 @@ public class PetsFragment extends Fragment {
             return;
         }
         List<String> names = new ArrayList<>();
-        for (Pet pet : archived) {
-            names.add(pet.name + " • " + pet.species);
-        }
+        for (Pet pet : archived) names.add(pet.name + " • " + pet.species);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, names);
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Archived pets")

@@ -25,4 +25,12 @@
         <item>Moderate</item>
         <item>Severe</item>
     </string-array>
+    <string-array name="reproductive_event_types">
+        <item>Pro-oestrus</item>
+        <item>Oestrus</item>
+        <item>Di-oestrus</item>
+        <item>False pregnancy</item>
+        <item>Pregnancy</item>
+        <item>Spay / neutering</item>
+    </string-array>
 </resources>

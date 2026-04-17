@@ -30,23 +30,9 @@
             android:layout_marginTop="12dp"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/button_pick_photo"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/choose_photo" />
-
-            <Space
-                android:layout_width="12dp"
-                android:layout_height="1dp" />
-
-            <Button
-                android:id="@+id/button_take_photo"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/take_photo" />
+            <Button android:id="@+id/button_pick_photo" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/choose_photo" />
+            <Space android:layout_width="12dp" android:layout_height="1dp" />
+            <Button android:id="@+id/button_take_photo" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/take_photo" />
         </LinearLayout>
 
         <Button
@@ -68,11 +54,7 @@
                 android:hint="@string/pet_name" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <Spinner
-            android:id="@+id/input_species"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" />
+        <Spinner android:id="@+id/input_species" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -95,21 +77,17 @@
                 android:layout_height="wrap_content"
                 android:focusable="false"
                 android:clickable="true"
-                android:hint="@string/date_of_birth" />
+                android:hint="Date of birth" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <TextView
             android:id="@+id/text_age_preview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:text="Age will be calculated automatically" />
 
-        <Spinner
-            android:id="@+id/input_sex"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" />
+        <Spinner android:id="@+id/input_sex" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -123,27 +101,8 @@
                 android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <Button
-            android:id="@+id/button_save_pet"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/save" />
-
-        <Button
-            android:id="@+id/button_archive_recover"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/archive"
-            android:visibility="gone" />
-
-        <Button
-            android:id="@+id/button_delete"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/delete"
-            android:visibility="gone" />
+        <Button android:id="@+id/button_save_pet" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="@string/save" />
+        <Button android:id="@+id/button_archive_recover" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/archive" android:visibility="gone" />
+        <Button android:id="@+id/button_delete" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/delete" android:visibility="gone" />
     </LinearLayout>
 </ScrollView>

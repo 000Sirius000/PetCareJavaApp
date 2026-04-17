@@ -10,7 +10,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="100dp"
+        android:minHeight="116dp"
         android:orientation="horizontal"
         android:padding="16dp">
 
@@ -37,6 +37,14 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/pet_age"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="3y, 2m, 15d"
+                android:textStyle="bold" />
+
+            <TextView
                 android:id="@+id/pet_species"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -49,6 +57,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:text="2 reminders today" />
+
+            <TextView
+                android:id="@+id/pet_extra"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Next vaccine: Rabies • 2026-04-21" />
 
             <ProgressBar
                 android:id="@+id/pet_goal_progress"
