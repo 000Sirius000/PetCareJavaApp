@@ -13,4 +13,10 @@ public class FeedingLog {
     public long completedAt;
     public String mealName;
     public String portion;
+
+    /**
+     * Required food type category for charts.
+     * Existing imported/old rows are migrated to "Dry food".
+     */
+    public String foodType;
 }

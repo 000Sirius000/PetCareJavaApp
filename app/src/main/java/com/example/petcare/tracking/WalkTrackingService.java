@@ -36,6 +36,10 @@ public class WalkTrackingService extends Service {
     private static final String CHANNEL_ID = "petcare_walk_tracking";
     private static final int NOTIFICATION_ID = 42042;
 
+    private static final float MAX_ACCEPTED_ACCURACY_METERS = 35f;
+    private static final float MIN_SEGMENT_METERS = 2f;
+    private static final float MAX_REASONABLE_SPEED_MPS = 7.5f; // fast run buffer, filters GPS jumps
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable notificationTicker = new Runnable() {
         @Override
@@ -64,9 +68,7 @@ public class WalkTrackingService extends Service {
             WalkTrackingStore.State state = WalkTrackingStore.read(this);
             if (state.active) {
                 startForegroundInternal(state);
-                if (!state.paused) {
-                    startLocationUpdates();
-                }
+                if (!state.paused) startLocationUpdates();
                 return START_STICKY;
             }
             stopSelf();
@@ -96,17 +98,16 @@ public class WalkTrackingService extends Service {
             stopSelf();
             return;
         }
+
         WalkTrackingStore.State state = WalkTrackingStore.read(this);
         if (state.active && state.petId == petId) {
             startForegroundInternal(state);
-            if (!state.paused) {
-                startLocationUpdates();
-            }
+            if (!state.paused) startLocationUpdates();
             return;
         }
-        if (state.active) {
-            return;
-        }
+
+        if (state.active) return;
+
         WalkTrackingStore.start(this, petId);
         WalkTrackingStore.clearLastLocation(this);
         WalkTrackingStore.State newState = WalkTrackingStore.read(this);
@@ -116,9 +117,8 @@ public class WalkTrackingService extends Service {
 
     private void handlePause() {
         WalkTrackingStore.State state = WalkTrackingStore.read(this);
-        if (!state.active || state.paused) {
-            return;
-        }
+        if (!state.active || state.paused) return;
+
         WalkTrackingStore.pause(this);
         stopLocationUpdates();
         updateNotification(WalkTrackingStore.read(this));
@@ -126,9 +126,8 @@ public class WalkTrackingService extends Service {
 
     private void handleResume() {
         WalkTrackingStore.State state = WalkTrackingStore.read(this);
-        if (!state.active || !state.paused) {
-            return;
-        }
+        if (!state.active || !state.paused) return;
+
         WalkTrackingStore.resume(this);
         startLocationUpdates();
         updateNotification(WalkTrackingStore.read(this));
@@ -141,6 +140,7 @@ public class WalkTrackingService extends Service {
 
         if (state.active) {
             long elapsedMs = state.elapsedNow();
+
             ActivitySession session = new ActivitySession();
             session.petId = state.petId;
             session.activityType = "Walk";
@@ -179,6 +179,7 @@ public class WalkTrackingService extends Service {
 
         Intent openIntent = new Intent(this, PetDetailActivity.class);
         openIntent.putExtra(PetDetailActivity.EXTRA_PET_ID, state.petId);
+        openIntent.putExtra(PetDetailActivity.EXTRA_INITIAL_TAB, PetDetailActivity.TAB_ACTIVITY);
         PendingIntent openPendingIntent = PendingIntent.getActivity(
                 this,
                 11,
@@ -213,62 +214,69 @@ public class WalkTrackingService extends Service {
     }
 
     private void startLocationUpdates() {
-        if (locationManager == null || !hasLocationPermission()) {
-            return;
-        }
+        if (locationManager == null || !hasLocationPermission()) return;
+
         stopLocationUpdates();
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                if (location == null) {
-                    return;
-                }
-                if (location.hasAccuracy() && location.getAccuracy() > 80f) {
-                    return;
-                }
-                WalkTrackingStore.State state = WalkTrackingStore.read(WalkTrackingService.this);
-                if (!state.active || state.paused) {
-                    return;
-                }
-                if (state.hasLastLocation) {
-                    float[] result = new float[1];
-                    Location.distanceBetween(state.lastLat, state.lastLon, location.getLatitude(), location.getLongitude(), result);
-                    float segmentMeters = result[0];
-                    if (segmentMeters >= 1f && segmentMeters <= 1000f) {
-                        WalkTrackingStore.addDistanceMeters(WalkTrackingService.this, segmentMeters);
-                    }
-                }
-                WalkTrackingStore.setLastLocation(WalkTrackingService.this, location.getLatitude(), location.getLongitude());
+                handleLocation(location);
             }
 
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-                // no-op
-            }
-
-            @Override
-            public void onProviderEnabled(String provider) {
-                // no-op
-            }
-
-            @Override
-            public void onProviderDisabled(String provider) {
-                // no-op
-            }
+            @Override public void onStatusChanged(String provider, int status, Bundle extras) { }
+            @Override public void onProviderEnabled(String provider) { }
+            @Override public void onProviderDisabled(String provider) { }
         };
 
         try {
+            // Use GPS as the only distance source. Network provider is intentionally not used for
+            // distance accumulation because mixed providers can duplicate and inflate segments.
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000L, 3f, locationListener, Looper.getMainLooper());
-            }
-            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000L, 5f, locationListener, Looper.getMainLooper());
+                locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER,
+                        3000L,
+                        3f,
+                        locationListener,
+                        Looper.getMainLooper()
+                );
             }
         } catch (SecurityException ignored) {
-            // App will still track elapsed time even if location updates are not available.
         } catch (IllegalArgumentException ignored) {
-            // Provider not available on this device.
         }
+    }
+
+    private void handleLocation(Location location) {
+        if (location == null) return;
+        if (location.hasAccuracy() && location.getAccuracy() > MAX_ACCEPTED_ACCURACY_METERS) return;
+
+        WalkTrackingStore.State state = WalkTrackingStore.read(this);
+        if (!state.active || state.paused) return;
+
+        if (state.hasLastLocation) {
+            float[] result = new float[1];
+            Location.distanceBetween(
+                    state.lastLat,
+                    state.lastLon,
+                    location.getLatitude(),
+                    location.getLongitude(),
+                    result
+            );
+
+            float segmentMeters = result[0];
+            long dtMs = Math.max(1L, location.getTime() > 0L ? location.getTime() - state.lastLocationTime : 3000L);
+            double speedMps = segmentMeters / (dtMs / 1000d);
+
+            if (segmentMeters >= MIN_SEGMENT_METERS && speedMps <= MAX_REASONABLE_SPEED_MPS) {
+                WalkTrackingStore.addDistanceMeters(this, segmentMeters);
+            }
+        }
+
+        WalkTrackingStore.setLastLocation(
+                this,
+                location.getLatitude(),
+                location.getLongitude(),
+                location.getTime() > 0L ? location.getTime() : System.currentTimeMillis()
+        );
     }
 
     private void stopLocationUpdates() {
@@ -289,9 +297,8 @@ public class WalkTrackingService extends Service {
 
     private void ensureChannel() {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (manager == null) {
-            return;
-        }
+        if (manager == null) return;
+
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Live walk tracking",

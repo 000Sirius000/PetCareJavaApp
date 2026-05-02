@@ -15,31 +15,33 @@ import java.util.Calendar;
 
 public class ReminderScheduler {
 
+    /**
+     * Feeding reminders were removed from the product.
+     * Keep this method as a safe no-op so old callers do not schedule new alarms.
+     */
     public static void scheduleFeeding(Context context, FeedingSchedule schedule) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, schedule.hourOfDay);
-        calendar.set(Calendar.MINUTE, schedule.minute);
-        calendar.set(Calendar.SECOND, 0);
-        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_YEAR, 1);
-        }
+        cancelFeeding(context, schedule == null ? 0L : schedule.id);
+    }
+
+    public static void cancelFeeding(Context context, long scheduleId) {
+        if (scheduleId <= 0L) return;
 
         Intent intent = new Intent(context, ReminderReceiver.class);
         intent.setAction("PETCARE_FEEDING");
-        intent.putExtra("petId", schedule.petId);
-        intent.putExtra("scheduleId", schedule.id);
-        intent.putExtra("title", schedule.mealName);
-        intent.putExtra("text", schedule.foodType + " • " + schedule.portion + " " + schedule.portionUnit);
-
         PendingIntent pi = PendingIntent.getBroadcast(
                 context,
-                (int) (10000 + schedule.id),
+                (int) (10000 + scheduleId),
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
         );
 
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        setAlarmSafely(context, alarmManager, calendar.getTimeInMillis(), pi);
+        if (pi != null) {
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager != null) {
+                alarmManager.cancel(pi);
+            }
+            pi.cancel();
+        }
     }
 
     public static void scheduleMedication(Context context, Medication medication) {
@@ -95,7 +97,6 @@ public class ReminderScheduler {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 if (!alarmManager.canScheduleExactAlarms()) {
-                    // Fallback: schedule an inexact alarm instead of crashing
                     alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pi);
                     return;
                 }
@@ -107,7 +108,6 @@ public class ReminderScheduler {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi);
             }
         } catch (SecurityException e) {
-            // Final safety net: fallback to inexact alarm
             alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pi);
         }
     }

@@ -27,8 +27,8 @@ public class ReminderActionReceiver extends BroadcastReceiver {
                 }
             }
             if (schedule != null) {
-                repository.logFeeding(petId, schedule.id, schedule.mealName, schedule.portion + " " + schedule.portionUnit);
-                ReminderScheduler.scheduleFeeding(context, schedule);
+                repository.logFeeding(petId, schedule.id, schedule.mealName, schedule.portion + " g");
+                ReminderScheduler.cancelFeeding(context, schedule.id);
                 Toast.makeText(context, "Feeding logged", Toast.LENGTH_SHORT).show();
             }
         } else if ("PETCARE_MEDICATION_DONE".equals(action)) {

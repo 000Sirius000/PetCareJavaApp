@@ -5,82 +5,94 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardCornerRadius="20dp">
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardBackgroundColor="@color/pet_surface"
+    app:cardCornerRadius="20dp"
+    app:strokeColor="@color/pet_border"
+    app:strokeWidth="1dp">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="116dp"
-        android:orientation="horizontal"
-        android:padding="16dp">
-
-        <ImageView
-            android:id="@+id/pet_thumbnail"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:contentDescription="@string/pet_name"
-            android:src="@android:drawable/ic_menu_gallery" />
+        android:layout_height="wrap_content">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:minHeight="104dp"
+            android:orientation="horizontal"
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/pet_name"
-                android:layout_width="wrap_content"
+            <ImageView
+                android:id="@+id/pet_thumbnail"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:contentDescription="@string/pet_name"
+                android:src="@android:drawable/ic_menu_gallery" />
+
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Milo"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/pet_age"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="3y, 2m, 15d"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/pet_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Milo"
+                    android:textColor="@color/pet_text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/pet_species"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Dog • Corgi" />
+                <TextView
+                    android:id="@+id/pet_age"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="3y, 2m, 15d"
+                    android:textColor="@color/pet_text_secondary"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/pet_stats"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="2 reminders today" />
+                <TextView
+                    android:id="@+id/pet_species"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Dog • Corgi"
+                    android:textColor="@color/pet_text_secondary" />
 
-            <TextView
-                android:id="@+id/pet_extra"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Next vaccine: Rabies • 2026-04-21" />
+                <TextView
+                    android:id="@+id/pet_stats"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Tap to select"
+                    android:textColor="@color/pet_text_primary" />
 
-            <ProgressBar
-                android:id="@+id/pet_goal_progress"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="8dp"
-                android:layout_marginTop="8dp"
-                android:max="100"
-                android:progress="40" />
+                <TextView
+                    android:id="@+id/pet_extra"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Next vaccine: Rabies"
+                    android:textColor="@color/pet_text_secondary" />
+            </LinearLayout>
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/button_edit_pet"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Edit pet"
-            android:src="@android:drawable/ic_menu_edit" />
-    </LinearLayout>
+        <TextView
+            android:id="@+id/selected_badge"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="10dp"
+            android:background="@drawable/bg_selected_badge"
+            android:gravity="center"
+            android:text="✓"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

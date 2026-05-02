@@ -6,6 +6,7 @@
     <string name="health">Health</string>
     <string name="feeding">Feeding</string>
     <string name="activity">Activity</string>
+    <string name="weight">Weight</string>
     <string name="symptoms">Symptoms</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>

@@ -48,7 +48,7 @@ import com.example.petcare.data.entities.WeightEntry;
                 SymptomEntry.class,
                 ReproductiveEvent.class
         },
-        version = 2,
+        version = 3,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -74,6 +74,21 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * UI/feature update:
+     * - healthy min/max weight are now stored on the pet profile;
+     * - feeding log rows now carry the food type used by the stacked chart.
+     */
+    public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `pets` ADD COLUMN `minHealthyWeight` REAL");
+            db.execSQL("ALTER TABLE `pets` ADD COLUMN `maxHealthyWeight` REAL");
+            db.execSQL("ALTER TABLE `feeding_logs` ADD COLUMN `foodType` TEXT");
+            db.execSQL("UPDATE `feeding_logs` SET `foodType` = 'Dry food' WHERE `foodType` IS NULL OR TRIM(`foodType`) = ''");
+        }
+    };
+
     public abstract PetDao petDao();
     public abstract VetVisitDao vetVisitDao();
     public abstract VaccinationDao vaccinationDao();
@@ -95,7 +110,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     context.getApplicationContext(),
                                     AppDatabase.class,
                                     "petcare.db")
-                            .addMigrations(MIGRATION_1_2)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                             .allowMainThreadQueries()
                             .build();
                 }

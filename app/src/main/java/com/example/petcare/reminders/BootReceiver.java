@@ -20,7 +20,7 @@ public class BootReceiver extends BroadcastReceiver {
 
         for (Pet pet : repository.getActivePets()) {
             for (FeedingSchedule schedule : repository.getFeedingSchedules(pet.id)) {
-                ReminderScheduler.scheduleFeeding(context, schedule);
+                ReminderScheduler.cancelFeeding(context, schedule.id);
             }
             for (Medication medication : repository.getMedications(pet.id)) {
                 if (!medication.archived && medication.nextReminderAt > System.currentTimeMillis()) {

@@ -50,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
         requestNotificationPermissionIfNeeded();
         requestExactAlarmPermissionIfNeeded();
 
-        // Плануємо reminders тільки після захисту від exact-alarm crash
         scheduleAllExistingReminders(repository);
 
         if (savedInstanceState == null) {
@@ -118,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             for (Pet pet : repository.getActivePets()) {
                 for (FeedingSchedule schedule : repository.getFeedingSchedules(pet.id)) {
-                    ReminderScheduler.scheduleFeeding(this, schedule);
+                    ReminderScheduler.cancelFeeding(this, schedule.id);
                 }
 
                 for (Medication medication : repository.getMedications(pet.id)) {

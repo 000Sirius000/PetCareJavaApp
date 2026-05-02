@@ -12,9 +12,16 @@ import com.example.petcare.databinding.ActivityPetDetailBinding;
 import com.example.petcare.ui.petdetail.sections.ActivityFragment;
 import com.example.petcare.ui.petdetail.sections.FeedingFragment;
 import com.example.petcare.ui.petdetail.sections.HealthFragment;
+import com.example.petcare.ui.petdetail.sections.WeightFragment;
 
 public class PetDetailActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
+    public static final String EXTRA_INITIAL_TAB = "extra_initial_tab";
+
+    public static final String TAB_ACTIVITY = "activity";
+    public static final String TAB_FEEDING = "feeding";
+    public static final String TAB_HEALTH = "health";
+    public static final String TAB_WEIGHT = "weight";
 
     private ActivityPetDetailBinding binding;
     private long petId;
@@ -32,21 +39,38 @@ public class PetDetailActivity extends AppCompatActivity {
         binding.petDetailToolbar.setTitle(pet == null ? "Pet detail" : pet.name);
 
         if (savedInstanceState == null) {
-            showFragment(HealthFragment.newInstance(petId));
+            String initial = getIntent().getStringExtra(EXTRA_INITIAL_TAB);
+            if (TAB_FEEDING.equals(initial)) {
+                binding.petDetailBottomNav.setSelectedItemId(R.id.nav_feeding);
+                showFragment(FeedingFragment.newInstance(petId));
+            } else if (TAB_HEALTH.equals(initial)) {
+                binding.petDetailBottomNav.setSelectedItemId(R.id.nav_health);
+                showFragment(HealthFragment.newInstance(petId));
+            } else if (TAB_WEIGHT.equals(initial)) {
+                binding.petDetailBottomNav.setSelectedItemId(R.id.nav_weight);
+                showFragment(WeightFragment.newInstance(petId));
+            } else {
+                binding.petDetailBottomNav.setSelectedItemId(R.id.nav_activity);
+                showFragment(ActivityFragment.newInstance(petId));
+            }
         }
 
         binding.petDetailBottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
-            if (id == R.id.nav_health) {
-                showFragment(HealthFragment.newInstance(petId));
+            if (id == R.id.nav_activity) {
+                showFragment(ActivityFragment.newInstance(petId));
                 return true;
             }
             if (id == R.id.nav_feeding) {
                 showFragment(FeedingFragment.newInstance(petId));
                 return true;
             }
-            if (id == R.id.nav_activity) {
-                showFragment(ActivityFragment.newInstance(petId));
+            if (id == R.id.nav_health) {
+                showFragment(HealthFragment.newInstance(petId));
+                return true;
+            }
+            if (id == R.id.nav_weight) {
+                showFragment(WeightFragment.newInstance(petId));
                 return true;
             }
             return false;

@@ -17,6 +17,7 @@ public final class WalkTrackingStore {
     private static final String KEY_HAS_LAST_LOCATION = "has_last_location";
     private static final String KEY_LAST_LAT = "last_lat";
     private static final String KEY_LAST_LON = "last_lon";
+    private static final String KEY_LAST_LOCATION_TIME = "last_location_time";
 
     private WalkTrackingStore() {
     }
@@ -34,6 +35,7 @@ public final class WalkTrackingStore {
         state.hasLastLocation = prefs.getBoolean(KEY_HAS_LAST_LOCATION, false);
         state.lastLat = Double.longBitsToDouble(prefs.getLong(KEY_LAST_LAT, Double.doubleToRawLongBits(0d)));
         state.lastLon = Double.longBitsToDouble(prefs.getLong(KEY_LAST_LON, Double.doubleToRawLongBits(0d)));
+        state.lastLocationTime = prefs.getLong(KEY_LAST_LOCATION_TIME, 0L);
         return state;
     }
 
@@ -48,33 +50,34 @@ public final class WalkTrackingStore {
                 .putBoolean(KEY_PAUSED, false)
                 .putLong(KEY_DISTANCE_METERS, Double.doubleToRawLongBits(0d))
                 .putBoolean(KEY_HAS_LAST_LOCATION, false)
+                .putLong(KEY_LAST_LOCATION_TIME, 0L)
                 .apply();
     }
 
     public static void pause(Context context) {
         State state = read(context);
-        if (!state.active || state.paused) {
-            return;
-        }
+        if (!state.active || state.paused) return;
+
         long now = System.currentTimeMillis();
         long accumulated = state.accumulatedMs + Math.max(0L, now - state.lastResumeAt);
         prefs(context).edit()
                 .putLong(KEY_ACCUMULATED_MS, accumulated)
                 .putBoolean(KEY_PAUSED, true)
                 .putBoolean(KEY_HAS_LAST_LOCATION, false)
+                .putLong(KEY_LAST_LOCATION_TIME, 0L)
                 .apply();
     }
 
     public static void resume(Context context) {
         State state = read(context);
-        if (!state.active || !state.paused) {
-            return;
-        }
+        if (!state.active || !state.paused) return;
+
         long now = System.currentTimeMillis();
         prefs(context).edit()
                 .putLong(KEY_LAST_RESUME_AT, now)
                 .putBoolean(KEY_PAUSED, false)
                 .putBoolean(KEY_HAS_LAST_LOCATION, false)
+                .putLong(KEY_LAST_LOCATION_TIME, 0L)
                 .apply();
     }
 
@@ -85,17 +88,19 @@ public final class WalkTrackingStore {
                 .apply();
     }
 
-    public static void setLastLocation(Context context, double latitude, double longitude) {
+    public static void setLastLocation(Context context, double latitude, double longitude, long locationTime) {
         prefs(context).edit()
                 .putBoolean(KEY_HAS_LAST_LOCATION, true)
                 .putLong(KEY_LAST_LAT, Double.doubleToRawLongBits(latitude))
                 .putLong(KEY_LAST_LON, Double.doubleToRawLongBits(longitude))
+                .putLong(KEY_LAST_LOCATION_TIME, locationTime)
                 .apply();
     }
 
     public static void clearLastLocation(Context context) {
         prefs(context).edit()
                 .putBoolean(KEY_HAS_LAST_LOCATION, false)
+                .putLong(KEY_LAST_LOCATION_TIME, 0L)
                 .apply();
     }
 
@@ -130,14 +135,11 @@ public final class WalkTrackingStore {
         public boolean hasLastLocation;
         public double lastLat;
         public double lastLon;
+        public long lastLocationTime;
 
         public long elapsedNow() {
-            if (!active) {
-                return 0L;
-            }
-            if (paused) {
-                return accumulatedMs;
-            }
+            if (!active) return 0L;
+            if (paused) return accumulatedMs;
             return accumulatedMs + Math.max(0L, System.currentTimeMillis() - lastResumeAt);
         }
     }

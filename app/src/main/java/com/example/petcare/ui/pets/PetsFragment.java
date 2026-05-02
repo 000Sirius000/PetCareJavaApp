@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.Pet;
 import com.example.petcare.databinding.FragmentPetsBinding;
-import com.example.petcare.ui.petdetail.PetDetailActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
@@ -24,22 +23,19 @@ public class PetsFragment extends Fragment {
     private FragmentPetsBinding binding;
     private PetAdapter adapter;
     private PetRepository repository;
+
     private final ActivityResultLauncher<Intent> petFormLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> reload());
 
     @Nullable
     @Override
     public android.view.View onCreateView(@NonNull android.view.LayoutInflater inflater, @Nullable android.view.ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+                                          @Nullable Bundle savedInstanceState) {
         binding = FragmentPetsBinding.inflate(inflater, container, false);
         repository = new PetRepository(requireContext());
 
         adapter = new PetAdapter(
-                pet -> {
-                    Intent intent = new Intent(requireContext(), PetDetailActivity.class);
-                    intent.putExtra(PetDetailActivity.EXTRA_PET_ID, pet.id);
-                    startActivity(intent);
-                },
+                pet -> reload(),
                 this::editPet,
                 repository,
                 PetAdapter.Mode.PETS
@@ -48,13 +44,17 @@ public class PetsFragment extends Fragment {
         binding.petsRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.petsRecycler.setAdapter(adapter);
         binding.petsSwipe.setOnRefreshListener(this::reload);
-        binding.addPetFab.setOnClickListener(v -> petFormLauncher.launch(new Intent(requireContext(), PetFormActivity.class)));
+
+        binding.addPetFab.setOnClickListener(v ->
+                petFormLauncher.launch(new Intent(requireContext(), PetFormActivity.class)));
+
         binding.petsToolbar.getMenu().clear();
         binding.petsToolbar.getMenu().add("Archived pets");
         binding.petsToolbar.setOnMenuItemClickListener(item -> {
             showArchivedPets();
             return true;
         });
+
         reload();
         return binding.getRoot();
     }
@@ -81,12 +81,16 @@ public class PetsFragment extends Fragment {
                     .show();
             return;
         }
+
         List<String> names = new ArrayList<>();
         for (Pet pet : archived) names.add(pet.name + " • " + pet.species);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, names);
+
+        ArrayAdapter<String> archivedAdapter =
+                new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, names);
+
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Archived pets")
-                .setAdapter(adapter, (dialog, which) -> {
+                .setAdapter(archivedAdapter, (dialog, which) -> {
                     Intent intent = new Intent(requireContext(), PetFormActivity.class);
                     intent.putExtra(PetFormActivity.EXTRA_PET_ID, archived.get(which).id);
                     petFormLauncher.launch(intent);
@@ -97,6 +101,7 @@ public class PetsFragment extends Fragment {
 
     private void reload() {
         List<Pet> pets = repository.getActivePets();
+        repository.getSelectedPetId();
         adapter.submitList(pets);
         binding.petsEmpty.setVisibility(pets.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
         binding.petsSwipe.setRefreshing(false);

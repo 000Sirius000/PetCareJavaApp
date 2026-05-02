@@ -91,11 +91,13 @@ public class PetFormActivity extends AppCompatActivity {
     }
 
     private void setupSpinners() {
-        ArrayAdapter<CharSequence> speciesAdapter = ArrayAdapter.createFromResource(this, R.array.species_options, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> speciesAdapter =
+                ArrayAdapter.createFromResource(this, R.array.species_options, android.R.layout.simple_spinner_item);
         speciesAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.inputSpecies.setAdapter(speciesAdapter);
 
-        ArrayAdapter<CharSequence> sexAdapter = ArrayAdapter.createFromResource(this, R.array.sex_options, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> sexAdapter =
+                ArrayAdapter.createFromResource(this, R.array.sex_options, android.R.layout.simple_spinner_item);
         sexAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.inputSex.setAdapter(sexAdapter);
     }
@@ -107,6 +109,12 @@ public class PetFormActivity extends AppCompatActivity {
         binding.inputAge.setText(editingPet.birthInfo);
         updateAgePreview(editingPet.birthInfo);
         binding.inputGoalMinutes.setText(String.valueOf(editingPet.weeklyActivityGoalMinutes));
+        if (editingPet.minHealthyWeight != null) {
+            binding.inputMinHealthyWeight.setText(String.valueOf(editingPet.minHealthyWeight));
+        }
+        if (editingPet.maxHealthyWeight != null) {
+            binding.inputMaxHealthyWeight.setText(String.valueOf(editingPet.maxHealthyWeight));
+        }
         selectSpinnerValue(binding.inputSpecies, editingPet.species);
         selectSpinnerValue(binding.inputSex, editingPet.sex);
         savedPhotoUri = editingPet.photoUri;
@@ -170,6 +178,13 @@ public class PetFormActivity extends AppCompatActivity {
             }
         }
 
+        Double minWeight = parseOptionalDouble(binding.inputMinHealthyWeight.getText() == null ? null : binding.inputMinHealthyWeight.getText().toString());
+        Double maxWeight = parseOptionalDouble(binding.inputMaxHealthyWeight.getText() == null ? null : binding.inputMaxHealthyWeight.getText().toString());
+        if (minWeight != null && maxWeight != null && minWeight > maxWeight) {
+            toast("Minimum healthy weight cannot be greater than maximum healthy weight");
+            return;
+        }
+
         Pet pet = editingPet == null ? new Pet() : editingPet;
         pet.name = name;
         pet.species = binding.inputSpecies.getSelectedItem().toString();
@@ -177,8 +192,13 @@ public class PetFormActivity extends AppCompatActivity {
         pet.birthInfo = birthInfo;
         pet.sex = binding.inputSex.getSelectedItem().toString();
         pet.photoUri = savedPhotoUri;
-        pet.weeklyActivityGoalMinutes = parseInt(binding.inputGoalMinutes.getText() == null ? null : binding.inputGoalMinutes.getText().toString(), 180);
-        repository.savePet(pet);
+        pet.weeklyActivityGoalMinutes = parseInt(binding.inputGoalMinutes.getText() == null ? null : binding.inputGoalMinutes.getText().toString(), 45);
+        pet.minHealthyWeight = minWeight;
+        pet.maxHealthyWeight = maxWeight;
+
+        long petId = repository.savePet(pet);
+        repository.setSelectedPetId(petId);
+
         setResult(RESULT_OK, new Intent());
         toast("Pet saved");
         finish();
@@ -235,6 +255,16 @@ public class PetFormActivity extends AppCompatActivity {
     private int parseInt(String value, int fallback) {
         try { return Integer.parseInt(safe(value)); }
         catch (Exception e) { return fallback; }
+    }
+
+    private Double parseOptionalDouble(String value) {
+        String clean = safe(value).replace(',', '.');
+        if (clean.isEmpty()) return null;
+        try { return Double.parseDouble(clean); }
+        catch (Exception e) {
+            toast("Please enter weight as a number");
+            throw e;
+        }
     }
 
     private String safe(String value) { return value == null ? "" : value.trim(); }

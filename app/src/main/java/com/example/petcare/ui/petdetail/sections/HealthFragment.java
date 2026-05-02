@@ -22,7 +22,6 @@ import com.example.petcare.data.entities.ReproductiveEvent;
 import com.example.petcare.data.entities.SymptomEntry;
 import com.example.petcare.data.entities.Vaccination;
 import com.example.petcare.data.entities.VetVisit;
-import com.example.petcare.data.entities.WeightEntry;
 import com.example.petcare.databinding.FragmentHealthSectionBinding;
 import com.example.petcare.ui.common.SimpleRowAdapter;
 import com.example.petcare.ui.forms.MedicationFormActivity;
@@ -30,11 +29,9 @@ import com.example.petcare.ui.forms.ReproductiveEventFormActivity;
 import com.example.petcare.ui.forms.SymptomEntryFormActivity;
 import com.example.petcare.ui.forms.VaccinationFormActivity;
 import com.example.petcare.ui.forms.VetVisitFormActivity;
-import com.example.petcare.ui.forms.WeightEntryFormActivity;
 import com.example.petcare.util.FormatUtils;
 import com.example.petcare.util.HealthPdfExporter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class HealthFragment extends Fragment {
@@ -80,7 +77,6 @@ public class HealthFragment extends Fragment {
                 if (item instanceof VetVisit) return "Vet visit";
                 if (item instanceof Vaccination) return "Vaccination";
                 if (item instanceof Medication) return "Medication";
-                if (item instanceof WeightEntry) return "Weight";
                 if (item instanceof SymptomEntry) return "Symptom";
                 if (item instanceof ReproductiveEvent) return "Reproductive: " + ((ReproductiveEvent) item).eventType;
                 return "";
@@ -93,16 +89,11 @@ public class HealthFragment extends Fragment {
                     return visit.reason + " • " + visit.clinicName;
                 }
                 if (item instanceof Vaccination) {
-                    Vaccination vaccination = (Vaccination) item;
-                    return vaccination.vaccineName;
+                    return ((Vaccination) item).vaccineName;
                 }
                 if (item instanceof Medication) {
                     Medication medication = (Medication) item;
                     return medication.medicationName + " • " + medication.dosage + " " + medication.dosageUnit;
-                }
-                if (item instanceof WeightEntry) {
-                    WeightEntry entry = (WeightEntry) item;
-                    return entry.weightValue + " " + entry.unit;
                 }
                 if (item instanceof SymptomEntry) {
                     SymptomEntry entry = (SymptomEntry) item;
@@ -118,12 +109,8 @@ public class HealthFragment extends Fragment {
             @Override
             public String meta(Object item) {
                 if (item instanceof VetVisit) return FormatUtils.date(((VetVisit) item).visitDateEpochMillis);
-                if (item instanceof Vaccination) {
-                    Vaccination vaccination = (Vaccination) item;
-                    return "Given: " + FormatUtils.date(vaccination.administeredAt);
-                }
+                if (item instanceof Vaccination) return "Given: " + FormatUtils.date(((Vaccination) item).administeredAt);
                 if (item instanceof Medication) return "Next dose: " + FormatUtils.dateTime(((Medication) item).nextReminderAt);
-                if (item instanceof WeightEntry) return "Measured: " + FormatUtils.date(((WeightEntry) item).measuredAt);
                 if (item instanceof SymptomEntry) return FormatUtils.dateTime(((SymptomEntry) item).recordedAt);
                 if (item instanceof ReproductiveEvent) return FormatUtils.date(((ReproductiveEvent) item).startDateEpochMillis);
                 return "";
@@ -144,10 +131,6 @@ public class HealthFragment extends Fragment {
                 intent = new Intent(requireContext(), MedicationFormActivity.class);
                 intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
                 intent.putExtra(MedicationFormActivity.EXTRA_MEDICATION_ID, ((Medication) item).id);
-            } else if (item instanceof WeightEntry) {
-                intent = new Intent(requireContext(), WeightEntryFormActivity.class);
-                intent.putExtra(WeightEntryFormActivity.EXTRA_PET_ID, petId);
-                intent.putExtra(WeightEntryFormActivity.EXTRA_WEIGHT_ID, ((WeightEntry) item).id);
             } else if (item instanceof SymptomEntry) {
                 intent = new Intent(requireContext(), SymptomEntryFormActivity.class);
                 intent.putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);
@@ -174,14 +157,12 @@ public class HealthFragment extends Fragment {
         items.sort((left, right) -> Long.compare(getItemTime(right), getItemTime(left)));
         adapter.submitList(items);
         binding.sectionEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
-        binding.weightChart.setEntries(repository.getWeightEntries(petId));
     }
 
     private long getItemTime(Object item) {
         if (item instanceof VetVisit) return ((VetVisit) item).visitDateEpochMillis;
         if (item instanceof Vaccination) return ((Vaccination) item).administeredAt;
         if (item instanceof Medication) return ((Medication) item).startDateEpochMillis;
-        if (item instanceof WeightEntry) return ((WeightEntry) item).measuredAt;
         if (item instanceof SymptomEntry) return ((SymptomEntry) item).recordedAt;
         if (item instanceof ReproductiveEvent) return ((ReproductiveEvent) item).startDateEpochMillis;
         return 0L;
@@ -193,7 +174,6 @@ public class HealthFragment extends Fragment {
         menu.getMenu().add("Add vet visit");
         menu.getMenu().add("Add vaccination");
         menu.getMenu().add("Add medication");
-        menu.getMenu().add("Add weight");
         menu.getMenu().add("Add symptom");
         if (pet != null && "female".equalsIgnoreCase(String.valueOf(pet.sex))) {
             menu.getMenu().add("Add reproductive event");
@@ -211,9 +191,6 @@ public class HealthFragment extends Fragment {
             } else if ("Add medication".equals(title)) {
                 intent = new Intent(requireContext(), MedicationFormActivity.class);
                 intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
-            } else if ("Add weight".equals(title)) {
-                intent = new Intent(requireContext(), WeightEntryFormActivity.class);
-                intent.putExtra(WeightEntryFormActivity.EXTRA_PET_ID, petId);
             } else if ("Add symptom".equals(title)) {
                 intent = new Intent(requireContext(), SymptomEntryFormActivity.class);
                 intent.putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);

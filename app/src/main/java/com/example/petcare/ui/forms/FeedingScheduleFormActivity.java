@@ -13,11 +13,11 @@ import com.example.petcare.databinding.ActivityFeedingScheduleFormBinding;
 import com.example.petcare.reminders.ReminderScheduler;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import java.util.Calendar;
-
 public class FeedingScheduleFormActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
     public static final String EXTRA_SCHEDULE_ID = "extra_schedule_id";
+
+    private static final String[] FOOD_TYPES = {"Natural", "Dry food", "Wet food (canned)"};
 
     private ActivityFeedingScheduleFormBinding binding;
     private PetRepository repository;
@@ -33,6 +33,11 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         binding.toolbar.setNavigationIcon(android.R.drawable.ic_menu_revert);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
+        binding.inputFoodType.setKeyListener(null);
+        binding.inputFoodType.setFocusable(false);
+        binding.inputFoodType.setClickable(true);
+        binding.inputFoodType.setOnClickListener(v -> chooseFoodType());
+
         long id = getIntent().getLongExtra(EXTRA_SCHEDULE_ID, 0L);
         if (id > 0) {
             editing = repository.getDb().feedingScheduleDao().getById(id);
@@ -40,6 +45,7 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         } else {
             binding.inputTime.setTag(new int[]{8, 0});
             binding.inputTime.setText("08:00");
+            binding.inputFoodType.setText("Dry food");
         }
 
         binding.inputTime.setOnClickListener(v -> showTimePicker());
@@ -50,12 +56,30 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
     private void populate() {
         binding.toolbar.setTitle("Edit feeding schedule");
         binding.inputMealName.setText(editing.mealName);
-        binding.inputFoodType.setText(editing.foodType);
+        binding.inputFoodType.setText(normalizeFoodType(editing.foodType));
         binding.inputPortion.setText(editing.portion);
-        binding.inputPortionUnit.setText(editing.portionUnit);
         binding.inputTime.setTag(new int[]{editing.hourOfDay, editing.minute});
         binding.inputTime.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", editing.hourOfDay, editing.minute));
         binding.buttonDelete.setVisibility(android.view.View.VISIBLE);
+    }
+
+    private void chooseFoodType() {
+        int checked = 1;
+        String current = text(binding.inputFoodType);
+        for (int i = 0; i < FOOD_TYPES.length; i++) {
+            if (FOOD_TYPES[i].equalsIgnoreCase(current)) {
+                checked = i;
+                break;
+            }
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Food type")
+                .setSingleChoiceItems(FOOD_TYPES, checked, (dialog, which) -> {
+                    binding.inputFoodType.setText(FOOD_TYPES[which]);
+                    dialog.dismiss();
+                })
+                .show();
     }
 
     private void showTimePicker() {
@@ -70,21 +94,44 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         FeedingSchedule schedule = editing == null ? new FeedingSchedule() : editing;
         schedule.petId = getIntent().getLongExtra(EXTRA_PET_ID, editing == null ? 0L : editing.petId);
         schedule.mealName = text(binding.inputMealName);
-        schedule.foodType = text(binding.inputFoodType);
+        schedule.foodType = normalizeFoodType(text(binding.inputFoodType));
         schedule.portion = text(binding.inputPortion);
-        schedule.portionUnit = text(binding.inputPortionUnit);
+        schedule.portionUnit = "g";
+
         int[] time = readTimeTag();
         schedule.hourOfDay = time[0];
         schedule.minute = time[1];
+
         if (schedule.mealName.isEmpty()) {
             toast("Meal name is required");
             return;
         }
-        if (schedule.id == 0) schedule.id = repository.getDb().feedingScheduleDao().insert(schedule);
-        else repository.getDb().feedingScheduleDao().update(schedule);
-        ReminderScheduler.scheduleFeeding(this, schedule);
+
+        if (schedule.portion.isEmpty()) {
+            toast("Portion is required");
+            return;
+        }
+
+        if (schedule.id == 0) {
+            schedule.id = repository.getDb().feedingScheduleDao().insert(schedule);
+        } else {
+            ReminderScheduler.cancelFeeding(this, schedule.id);
+            repository.getDb().feedingScheduleDao().update(schedule);
+        }
+
+        // Feeding reminders/notifications are intentionally disabled.
+        ReminderScheduler.cancelFeeding(this, schedule.id);
+
         setResult(RESULT_OK, new Intent());
         finish();
+    }
+
+    private String normalizeFoodType(String value) {
+        if (value == null || value.trim().isEmpty()) return "Dry food";
+        for (String type : FOOD_TYPES) {
+            if (type.equalsIgnoreCase(value.trim())) return type;
+        }
+        return "Dry food";
     }
 
     private void confirmDelete() {
@@ -94,6 +141,7 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
                 .setMessage(R.string.confirm_delete)
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (d, w) -> {
+                    ReminderScheduler.cancelFeeding(this, editing.id);
                     repository.getDb().feedingScheduleDao().delete(editing);
                     setResult(RESULT_OK);
                     finish();

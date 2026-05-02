@@ -52,13 +52,16 @@ public class FeedingFragment extends Fragment {
         adapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<FeedingSchedule>() {
             @Override
             public String title(FeedingSchedule item) { return item.mealName; }
+
             @Override
             public String subtitle(FeedingSchedule item) {
                 return String.format(Locale.getDefault(), "%02d:%02d • %s", item.hourOfDay, item.minute, item.foodType);
             }
+
             @Override
-            public String meta(FeedingSchedule item) { return "Portion: " + item.portion + " " + item.portionUnit; }
+            public String meta(FeedingSchedule item) { return "Portion: " + item.portion + " g"; }
         });
+
         adapter.setOnRowClickListener(item -> {
             Intent intent = new Intent(requireContext(), FeedingScheduleFormActivity.class);
             intent.putExtra(FeedingScheduleFormActivity.EXTRA_PET_ID, petId);
@@ -68,14 +71,17 @@ public class FeedingFragment extends Fragment {
 
         binding.sectionRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.sectionRecycler.setAdapter(adapter);
+
         binding.buttonAddFeeding.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), FeedingScheduleFormActivity.class);
             intent.putExtra(FeedingScheduleFormActivity.EXTRA_PET_ID, petId);
             formLauncher.launch(intent);
         });
+
         binding.buttonWeek.setOnClickListener(v -> setRange(FilterRange.WEEK));
         binding.buttonMonth.setOnClickListener(v -> setRange(FilterRange.MONTH));
         binding.buttonYear.setOnClickListener(v -> setRange(FilterRange.YEAR));
+
         reload();
         return binding.getRoot();
     }
@@ -90,6 +96,6 @@ public class FeedingFragment extends Fragment {
         adapter.submitList(items);
         binding.sectionEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
         binding.feedingChart.setData(repository.getFeedingLogs(petId), range);
-        binding.sectionSubtitle.setText("Schedules and meal proportions • " + range.name());
+        binding.sectionSubtitle.setText("Schedules and grams consumed by food type • " + range.name());
     }
 }

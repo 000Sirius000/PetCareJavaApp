@@ -20,6 +20,11 @@
         <item>Swim</item>
         <item>Custom</item>
     </string-array>
+    <string-array name="food_type_options">
+        <item>Natural</item>
+        <item>Dry food</item>
+        <item>Wet food (canned)</item>
+    </string-array>
     <string-array name="severity_options">
         <item>Mild</item>
         <item>Moderate</item>

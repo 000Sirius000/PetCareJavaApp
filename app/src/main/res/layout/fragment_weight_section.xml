@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/pet_background"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/section_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Weight"
+        android:textColor="@color/pet_text_primary"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/section_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Weight trend chart and measurement log"
+        android:textColor="@color/pet_text_secondary"
+        android:textSize="14sp" />
+
+    <com.example.petcare.ui.common.WeightChartView
+        android:id="@+id/weight_chart"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_marginTop="16dp"
+        android:contentDescription="Weight history chart" />
+
+    <Button
+        android:id="@+id/button_add_weight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Add weight measurement" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/weight_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/weight_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No weight entries yet"
+        android:textColor="@color/pet_text_secondary"
+        android:visibility="gone" />
+</LinearLayout>
