@@ -11,7 +11,13 @@
     <string-array name="theme_options">
         <item>System</item>
         <item>Light</item>
-        <item>Dark</item>
+        <item>Black-yellow</item>
+        <item>Black-purple</item>
+    </string-array>
+    <string-array name="pet_icon_options">
+        <item>Dog + cat</item>
+        <item>Dog only</item>
+        <item>Cat only</item>
     </string-array>
     <string-array name="activity_types">
         <item>Walk</item>
@@ -29,6 +35,14 @@
         <item>Mild</item>
         <item>Moderate</item>
         <item>Severe</item>
+    </string-array>
+    <string-array name="reminder_frequency_options">
+        <item>None</item>
+        <item>Daily</item>
+        <item>Weekly</item>
+        <item>Monthly</item>
+        <item>Every 3 months</item>
+        <item>Yearly</item>
     </string-array>
     <string-array name="reproductive_event_types">
         <item>Pro-oestrus</item>

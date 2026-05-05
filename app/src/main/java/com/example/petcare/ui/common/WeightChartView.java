@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat;
 import com.example.petcare.R;
 import com.example.petcare.data.entities.WeightEntry;
 import com.example.petcare.util.FormatUtils;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,8 +48,8 @@ public class WeightChartView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         axisPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));
-        linePaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_primary));
-        pointPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_primary));
+        linePaint.setColor(ThemeUtils.getAccentColor(getContext()));
+        pointPaint.setColor(ThemeUtils.getAccentColor(getContext()));
         warningPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_warning));
         labelPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_secondary));
         tickPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));

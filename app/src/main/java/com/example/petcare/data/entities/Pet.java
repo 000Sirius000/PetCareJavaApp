@@ -15,14 +15,16 @@ public class Pet {
     public String sex;
     public String photoUri;
 
-    /**
-     * Kept with the old DB column name for migration compatibility.
-     * The UI now treats this value as a DAILY goal in minutes.
-     */
+    /** Kept with the old DB column name for migration compatibility; UI treats it as daily minutes. */
     public int weeklyActivityGoalMinutes;
 
     public Double minHealthyWeight;
     public Double maxHealthyWeight;
+
+    public String internationalPetPassport;
+    public String nationalPetPassport;
+    public String microchipCode;
+    public String microchipImplantationDate;
 
     public boolean archived;
     public long createdAt;

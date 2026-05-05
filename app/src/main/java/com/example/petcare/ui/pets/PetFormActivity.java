@@ -17,6 +17,7 @@ import com.example.petcare.databinding.ActivityPetFormBinding;
 import com.example.petcare.ui.common.FormUiUtils;
 import com.example.petcare.util.AgeUtils;
 import com.example.petcare.util.StorageUtils;
+import com.example.petcare.util.ThemeUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.time.LocalDate;
@@ -56,6 +57,7 @@ public class PetFormActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeUtils.applyActivityTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivityPetFormBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -70,6 +72,11 @@ public class PetFormActivity extends AppCompatActivity {
         binding.inputAge.setFocusable(false);
         binding.inputAge.setClickable(true);
         binding.inputAge.setOnClickListener(v -> openBirthDatePicker());
+
+        binding.inputMicrochipImplantationDate.setKeyListener(null);
+        binding.inputMicrochipImplantationDate.setFocusable(false);
+        binding.inputMicrochipImplantationDate.setClickable(true);
+        binding.inputMicrochipImplantationDate.setOnClickListener(v -> openMicrochipDatePicker());
 
         long petId = getIntent().getLongExtra(EXTRA_PET_ID, 0L);
         if (petId > 0) {
@@ -115,6 +122,10 @@ public class PetFormActivity extends AppCompatActivity {
         if (editingPet.maxHealthyWeight != null) {
             binding.inputMaxHealthyWeight.setText(String.valueOf(editingPet.maxHealthyWeight));
         }
+        binding.inputInternationalPetPassport.setText(editingPet.internationalPetPassport);
+        binding.inputNationalPetPassport.setText(editingPet.nationalPetPassport);
+        binding.inputMicrochipCode.setText(editingPet.microchipCode);
+        binding.inputMicrochipImplantationDate.setText(editingPet.microchipImplantationDate);
         selectSpinnerValue(binding.inputSpecies, editingPet.species);
         selectSpinnerValue(binding.inputSex, editingPet.sex);
         savedPhotoUri = editingPet.photoUri;
@@ -136,6 +147,10 @@ public class PetFormActivity extends AppCompatActivity {
             String value = binding.inputAge.getText() == null ? "" : binding.inputAge.getText().toString().trim();
             updateAgePreview(value);
         });
+    }
+
+    private void openMicrochipDatePicker() {
+        FormUiUtils.showDatePicker(this, System.currentTimeMillis(), binding.inputMicrochipImplantationDate, null);
     }
 
     private void updateAgePreview(String birthInfo) {
@@ -195,6 +210,10 @@ public class PetFormActivity extends AppCompatActivity {
         pet.weeklyActivityGoalMinutes = parseInt(binding.inputGoalMinutes.getText() == null ? null : binding.inputGoalMinutes.getText().toString(), 45);
         pet.minHealthyWeight = minWeight;
         pet.maxHealthyWeight = maxWeight;
+        pet.internationalPetPassport = safe(binding.inputInternationalPetPassport.getText() == null ? null : binding.inputInternationalPetPassport.getText().toString());
+        pet.nationalPetPassport = safe(binding.inputNationalPetPassport.getText() == null ? null : binding.inputNationalPetPassport.getText().toString());
+        pet.microchipCode = safe(binding.inputMicrochipCode.getText() == null ? null : binding.inputMicrochipCode.getText().toString());
+        pet.microchipImplantationDate = safe(binding.inputMicrochipImplantationDate.getText() == null ? null : binding.inputMicrochipImplantationDate.getText().toString());
 
         long petId = repository.savePet(pet);
         repository.setSelectedPetId(petId);
@@ -263,7 +282,7 @@ public class PetFormActivity extends AppCompatActivity {
         try { return Double.parseDouble(clean); }
         catch (Exception e) {
             toast("Please enter weight as a number");
-            throw e;
+            return null;
         }
     }
 

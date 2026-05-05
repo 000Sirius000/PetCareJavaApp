@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat;
 import com.example.petcare.R;
 import com.example.petcare.data.entities.ActivitySession;
 import com.example.petcare.util.FormatUtils;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -44,7 +45,7 @@ public class ActivityDistanceBarChartView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         axisPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));
-        barPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_secondary));
+        barPaint.setColor(ThemeUtils.getActivityDistanceColor(getContext()));
         textPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_secondary));
 
         float left = 85f;

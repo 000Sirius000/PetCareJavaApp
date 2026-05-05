@@ -11,12 +11,12 @@ import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.FeedingSchedule;
 import com.example.petcare.databinding.ActivityFeedingScheduleFormBinding;
 import com.example.petcare.reminders.ReminderScheduler;
+import com.example.petcare.util.ThemeUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class FeedingScheduleFormActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
     public static final String EXTRA_SCHEDULE_ID = "extra_schedule_id";
-
     private static final String[] FOOD_TYPES = {"Natural", "Dry food", "Wet food (canned)"};
 
     private ActivityFeedingScheduleFormBinding binding;
@@ -25,6 +25,7 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeUtils.applyActivityTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivityFeedingScheduleFormBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -39,7 +40,7 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         binding.inputFoodType.setOnClickListener(v -> chooseFoodType());
 
         long id = getIntent().getLongExtra(EXTRA_SCHEDULE_ID, 0L);
-        if (id > 0) {
+        if (id > 0L) {
             editing = repository.getDb().feedingScheduleDao().getById(id);
             if (editing != null) populate();
         } else {
@@ -67,12 +68,8 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         int checked = 1;
         String current = text(binding.inputFoodType);
         for (int i = 0; i < FOOD_TYPES.length; i++) {
-            if (FOOD_TYPES[i].equalsIgnoreCase(current)) {
-                checked = i;
-                break;
-            }
+            if (FOOD_TYPES[i].equalsIgnoreCase(current)) checked = i;
         }
-
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Food type")
                 .setSingleChoiceItems(FOOD_TYPES, checked, (dialog, which) -> {
@@ -97,40 +94,27 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         schedule.foodType = normalizeFoodType(text(binding.inputFoodType));
         schedule.portion = text(binding.inputPortion);
         schedule.portionUnit = "g";
-
         int[] time = readTimeTag();
         schedule.hourOfDay = time[0];
         schedule.minute = time[1];
+        if (schedule.createdAtEpochMillis <= 0L) schedule.createdAtEpochMillis = System.currentTimeMillis();
 
-        if (schedule.mealName.isEmpty()) {
-            toast("Meal name is required");
-            return;
-        }
+        if (schedule.mealName.isEmpty()) { toast("Meal name is required"); return; }
+        if (schedule.portion.isEmpty()) { toast("Portion is required"); return; }
 
-        if (schedule.portion.isEmpty()) {
-            toast("Portion is required");
-            return;
-        }
-
-        if (schedule.id == 0) {
-            schedule.id = repository.getDb().feedingScheduleDao().insert(schedule);
-        } else {
+        if (schedule.id == 0L) schedule.id = repository.getDb().feedingScheduleDao().insert(schedule);
+        else {
             ReminderScheduler.cancelFeeding(this, schedule.id);
             repository.getDb().feedingScheduleDao().update(schedule);
         }
-
-        // Feeding reminders/notifications are intentionally disabled.
         ReminderScheduler.cancelFeeding(this, schedule.id);
-
         setResult(RESULT_OK, new Intent());
         finish();
     }
 
     private String normalizeFoodType(String value) {
         if (value == null || value.trim().isEmpty()) return "Dry food";
-        for (String type : FOOD_TYPES) {
-            if (type.equalsIgnoreCase(value.trim())) return type;
-        }
+        for (String type : FOOD_TYPES) if (type.equalsIgnoreCase(value.trim())) return type;
         return "Dry food";
     }
 
@@ -158,7 +142,5 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         return field.getText() == null ? "" : field.getText().toString().trim();
     }
 
-    private void toast(String value) {
-        Toast.makeText(this, value, Toast.LENGTH_SHORT).show();
-    }
+    private void toast(String value) { Toast.makeText(this, value, Toast.LENGTH_SHORT).show(); }
 }

@@ -50,18 +50,12 @@ public class FeedingFragment extends Fragment {
         petId = requireArguments().getLong(ARG_PET_ID);
 
         adapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<FeedingSchedule>() {
-            @Override
-            public String title(FeedingSchedule item) { return item.mealName; }
-
-            @Override
-            public String subtitle(FeedingSchedule item) {
+            @Override public String title(FeedingSchedule item) { return item.mealName; }
+            @Override public String subtitle(FeedingSchedule item) {
                 return String.format(Locale.getDefault(), "%02d:%02d • %s", item.hourOfDay, item.minute, item.foodType);
             }
-
-            @Override
-            public String meta(FeedingSchedule item) { return "Portion: " + item.portion + " g"; }
+            @Override public String meta(FeedingSchedule item) { return "Portion: " + item.portion + " g"; }
         });
-
         adapter.setOnRowClickListener(item -> {
             Intent intent = new Intent(requireContext(), FeedingScheduleFormActivity.class);
             intent.putExtra(FeedingScheduleFormActivity.EXTRA_PET_ID, petId);
@@ -71,31 +65,25 @@ public class FeedingFragment extends Fragment {
 
         binding.sectionRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.sectionRecycler.setAdapter(adapter);
-
         binding.buttonAddFeeding.setOnClickListener(v -> {
             Intent intent = new Intent(requireContext(), FeedingScheduleFormActivity.class);
             intent.putExtra(FeedingScheduleFormActivity.EXTRA_PET_ID, petId);
             formLauncher.launch(intent);
         });
-
         binding.buttonWeek.setOnClickListener(v -> setRange(FilterRange.WEEK));
         binding.buttonMonth.setOnClickListener(v -> setRange(FilterRange.MONTH));
         binding.buttonYear.setOnClickListener(v -> setRange(FilterRange.YEAR));
-
         reload();
         return binding.getRoot();
     }
 
-    private void setRange(FilterRange newRange) {
-        range = newRange;
-        reload();
-    }
+    private void setRange(FilterRange newRange) { range = newRange; reload(); }
 
     private void reload() {
-        List<FeedingSchedule> items = repository.getFeedingSchedules(petId);
-        adapter.submitList(items);
-        binding.sectionEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
-        binding.feedingChart.setData(repository.getFeedingLogs(petId), range);
+        List<FeedingSchedule> schedules = repository.getFeedingSchedules(petId);
+        adapter.submitList(schedules);
+        binding.sectionEmpty.setVisibility(schedules.isEmpty() ? View.VISIBLE : View.GONE);
+        binding.feedingChart.setData(repository.getFeedingLogs(petId), schedules, range);
         binding.sectionSubtitle.setText("Schedules and grams consumed by food type • " + range.name());
     }
 }

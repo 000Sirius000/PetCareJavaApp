@@ -12,7 +12,9 @@ import androidx.core.content.ContextCompat;
 
 import com.example.petcare.R;
 import com.example.petcare.data.entities.FeedingLog;
+import com.example.petcare.data.entities.FeedingSchedule;
 import com.example.petcare.util.FormatUtils;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -26,6 +28,7 @@ public class FeedingStackedBarChartView extends View {
     private final List<BarInfo> bars = new ArrayList<>();
 
     private List<FeedingLog> logs = new ArrayList<>();
+    private List<FeedingSchedule> schedules = new ArrayList<>();
     private FilterRange range = FilterRange.WEEK;
 
     public FeedingStackedBarChartView(Context context, AttributeSet attrs) {
@@ -34,10 +37,15 @@ public class FeedingStackedBarChartView extends View {
         textPaint.setTextSize(24f);
     }
 
-    public void setData(List<FeedingLog> logs, FilterRange range) {
+    public void setData(List<FeedingLog> logs, List<FeedingSchedule> schedules, FilterRange range) {
         this.logs = logs == null ? new ArrayList<>() : new ArrayList<>(logs);
+        this.schedules = schedules == null ? new ArrayList<>() : new ArrayList<>(schedules);
         this.range = range == null ? FilterRange.WEEK : range;
         invalidate();
+    }
+
+    public void setData(List<FeedingLog> logs, FilterRange range) {
+        setData(logs, null, range);
     }
 
     @Override
@@ -57,48 +65,40 @@ public class FeedingStackedBarChartView extends View {
 
         buildBars();
         if (bars.isEmpty()) {
-            canvas.drawText("No feeding log data yet", left + 20f, bottom - 20f, textPaint);
+            canvas.drawText("No feeding data yet", left + 20f, bottom - 20f, textPaint);
             return;
         }
 
         double max = 0d;
-        for (BarInfo bar : bars) {
-            max = Math.max(max, bar.natural + bar.dry + bar.wet);
-        }
+        for (BarInfo bar : bars) max = Math.max(max, bar.natural + bar.dry + bar.wet);
         if (max <= 0d) max = 1d;
 
         float slotWidth = (right - left) / bars.size();
         float barWidth = Math.max(14f, slotWidth * 0.62f);
-
         for (int i = 0; i < bars.size(); i++) {
             BarInfo bar = bars.get(i);
             float x = left + i * slotWidth + (slotWidth - barWidth) / 2f;
             float currentBottom = bottom;
-
-            currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.natural, max, R.color.pet_primary);
-            currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.dry, max, R.color.pet_secondary);
-            currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.wet, max, R.color.pet_warning);
-
+            currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.natural, max, ThemeUtils.getAccentColor(getContext()));
+            currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.dry, max, ContextCompat.getColor(getContext(), R.color.pet_secondary));
+            currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.wet, max, ContextCompat.getColor(getContext(), R.color.pet_warning));
             bar.left = x;
             bar.right = x + barWidth;
             bar.top = currentBottom;
             bar.bottom = bottom;
             canvas.drawText(bar.label, x - 6f, bottom + 28f, textPaint);
         }
-
-        float legendY = getHeight() - 18f;
-        canvas.drawText("Natural", left, legendY, textPaint);
-        canvas.drawText("Dry", left + 120f, legendY, textPaint);
-        canvas.drawText("Wet", left + 200f, legendY, textPaint);
+        canvas.drawText("Natural", left, getHeight() - 18f, textPaint);
+        canvas.drawText("Dry", left + 120f, getHeight() - 18f, textPaint);
+        canvas.drawText("Wet", left + 200f, getHeight() - 18f, textPaint);
     }
 
     private float drawSegment(Canvas canvas, float x, float width, float currentBottom, float bottom, float top,
-                              double value, double max, int colorRes) {
+                              double value, double max, int color) {
         if (value <= 0d) return currentBottom;
-
         float height = (float) ((value / max) * (bottom - top - 10f));
         float segmentTop = currentBottom - height;
-        fillPaint.setColor(ContextCompat.getColor(getContext(), colorRes));
+        fillPaint.setColor(color);
         canvas.drawRect(x, segmentTop, x + width, currentBottom, fillPaint);
         return segmentTop;
     }
@@ -111,11 +111,7 @@ public class FeedingStackedBarChartView extends View {
         for (BarInfo bar : bars) {
             if (x >= bar.left && x <= bar.right && y >= bar.top && y <= bar.bottom) {
                 double total = bar.natural + bar.dry + bar.wet;
-                Toast.makeText(
-                        getContext(),
-                        bar.label + ": " + FormatUtils.number(total) + " g",
-                        Toast.LENGTH_SHORT
-                ).show();
+                Toast.makeText(getContext(), bar.label + ": " + FormatUtils.number(total) + " g", Toast.LENGTH_SHORT).show();
                 return true;
             }
         }
@@ -124,83 +120,69 @@ public class FeedingStackedBarChartView extends View {
 
     private void buildBars() {
         bars.clear();
-
         Calendar now = Calendar.getInstance();
         if (range == FilterRange.YEAR) {
             int year = now.get(Calendar.YEAR);
             for (int month = 0; month < 12; month++) {
-                Calendar start = Calendar.getInstance();
-                start.clear();
-                start.set(year, month, 1, 0, 0, 0);
-                Calendar end = Calendar.getInstance();
-                end.clear();
-                end.set(year, month, start.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-
+                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, 1, 0, 0, 0);
+                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, start.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
                 BarInfo info = sumBetween(start.getTimeInMillis(), end.getTimeInMillis());
                 info.label = new java.text.DateFormatSymbols(Locale.getDefault()).getShortMonths()[month];
                 bars.add(info);
             }
             return;
         }
-
         if (range == FilterRange.MONTH) {
             int year = now.get(Calendar.YEAR);
             int month = now.get(Calendar.MONTH);
             int days = now.getActualMaximum(Calendar.DAY_OF_MONTH);
             for (int day = 1; day <= days; day++) {
-                Calendar start = Calendar.getInstance();
-                start.clear();
-                start.set(year, month, day, 0, 0, 0);
-                Calendar end = Calendar.getInstance();
-                end.clear();
-                end.set(year, month, day, 23, 59, 59);
-
+                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, day, 0, 0, 0);
+                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, day, 23, 59, 59);
                 BarInfo info = sumBetween(start.getTimeInMillis(), end.getTimeInMillis());
                 info.label = String.valueOf(day);
                 bars.add(info);
             }
             return;
         }
-
         Calendar day = Calendar.getInstance();
         day.add(Calendar.DAY_OF_YEAR, -6);
         for (int i = 0; i < 7; i++) {
-            Calendar start = (Calendar) day.clone();
-            start.set(Calendar.HOUR_OF_DAY, 0);
-            start.set(Calendar.MINUTE, 0);
-            start.set(Calendar.SECOND, 0);
-            start.set(Calendar.MILLISECOND, 0);
-
-            Calendar end = (Calendar) start.clone();
-            end.set(Calendar.HOUR_OF_DAY, 23);
-            end.set(Calendar.MINUTE, 59);
-            end.set(Calendar.SECOND, 59);
-
+            Calendar start = (Calendar) day.clone(); start.set(Calendar.HOUR_OF_DAY, 0); start.set(Calendar.MINUTE, 0); start.set(Calendar.SECOND, 0); start.set(Calendar.MILLISECOND, 0);
+            Calendar end = (Calendar) start.clone(); end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59); end.set(Calendar.SECOND, 59);
             BarInfo info = sumBetween(start.getTimeInMillis(), end.getTimeInMillis());
             info.label = FormatUtils.dayLabel(start.getTimeInMillis());
             bars.add(info);
-
             day.add(Calendar.DAY_OF_YEAR, 1);
         }
     }
 
     private BarInfo sumBetween(long start, long end) {
         BarInfo info = new BarInfo();
+        boolean hasLogForRange = false;
         for (FeedingLog log : logs) {
             if (log.completedAt < start || log.completedAt > end) continue;
-            double grams = FormatUtils.parseLeadingNumber(log.portion);
-            if (grams <= 0d) continue;
-
-            String type = log.foodType == null ? "Dry food" : log.foodType.trim();
-            if ("Natural".equalsIgnoreCase(type)) {
-                info.natural += grams;
-            } else if ("Wet food (canned)".equalsIgnoreCase(type)) {
-                info.wet += grams;
-            } else {
-                info.dry += grams;
+            hasLogForRange = true;
+            add(info, log.foodType, FormatUtils.parseLeadingNumber(log.portion));
+        }
+        // Bug fix: if there are schedules but no completed log rows yet, still show chart data
+        // using schedule creation date/current schedule info instead of an empty chart.
+        if (!hasLogForRange) {
+            for (FeedingSchedule schedule : schedules) {
+                long t = schedule.createdAtEpochMillis > 0L ? schedule.createdAtEpochMillis : System.currentTimeMillis();
+                if (t < start || t > end) continue;
+                add(info, schedule.foodType, FormatUtils.parseLeadingNumber(schedule.portion));
             }
         }
         return info;
+    }
+
+    private void add(BarInfo info, String type, double grams) {
+        if (grams <= 0d) return;
+        String normalized = type == null ? "Dry food" : type.trim();
+        if ("Natural".equalsIgnoreCase(normalized)) info.natural += grams;
+        else if ("Wet food (canned)".equalsIgnoreCase(normalized)) info.wet += grams;
+        else info.dry += grams;
     }
 
     private static class BarInfo {

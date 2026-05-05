@@ -17,4 +17,7 @@ public class FeedingSchedule {
     public String portionUnit;
     public boolean snoozed;
     public long snoozeUntil;
+
+    /** Date used by feeding charts when a schedule has not yet generated a completed feeding log. */
+    public long createdAtEpochMillis;
 }

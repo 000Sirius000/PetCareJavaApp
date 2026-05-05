@@ -1,5 +1,7 @@
 package com.example.petcare.ui.forms;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
@@ -11,9 +13,11 @@ import com.example.petcare.R;
 import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.ActivitySession;
 import com.example.petcare.databinding.ActivityActivitySessionFormBinding;
-import com.example.petcare.ui.common.FormUiUtils;
 import com.example.petcare.util.FormatUtils;
+import com.example.petcare.util.ThemeUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import java.util.Calendar;
 
 public class ActivitySessionFormActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
@@ -22,66 +26,94 @@ public class ActivitySessionFormActivity extends AppCompatActivity {
     private ActivityActivitySessionFormBinding binding;
     private PetRepository repository;
     private ActivitySession editing;
+    private long selectedDateTime = System.currentTimeMillis();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeUtils.applyActivityTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivityActivitySessionFormBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         repository = new PetRepository(this);
 
-        ArrayAdapter<CharSequence> activityAdapter = ArrayAdapter.createFromResource(this, R.array.activity_types, android.R.layout.simple_spinner_item);
-        activityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        binding.inputActivityType.setAdapter(activityAdapter);
-
-        ArrayAdapter<String> distanceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"km", "miles"});
-        distanceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        binding.inputDistanceUnit.setAdapter(distanceAdapter);
-
         binding.toolbar.setNavigationIcon(android.R.drawable.ic_menu_revert);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.activity_types, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.inputActivityType.setAdapter(adapter);
+
         long id = getIntent().getLongExtra(EXTRA_ACTIVITY_ID, 0L);
-        if (id > 0) {
+        if (id > 0L) {
             editing = repository.getDb().activitySessionDao().getById(id);
             if (editing != null) populate();
         } else {
-            binding.inputDate.setTag(System.currentTimeMillis());
-            binding.inputDate.setText(FormatUtils.date(System.currentTimeMillis()));
+            updateDateTimeText();
         }
 
-        binding.inputDate.setOnClickListener(v -> FormUiUtils.showDatePicker(this, readTag(), binding.inputDate, null));
+        binding.inputDateTime.setOnClickListener(v -> showDatePicker());
         binding.buttonSave.setOnClickListener(v -> save());
         binding.buttonDelete.setOnClickListener(v -> confirmDelete());
     }
 
     private void populate() {
         binding.toolbar.setTitle("Edit activity");
-        selectSpinnerValue(binding.inputActivityType, editing.activityType);
-        selectSpinnerValue(binding.inputDistanceUnit, editing.distanceUnit);
+        selectSpinnerValue(editing.activityType);
         binding.inputDuration.setText(String.valueOf(editing.durationMinutes));
-        binding.inputDistance.setText(editing.distance == null ? "" : String.valueOf(editing.distance));
-        binding.inputDate.setTag(editing.sessionDateEpochMillis);
-        binding.inputDate.setText(FormatUtils.date(editing.sessionDateEpochMillis));
+        if (editing.distance != null) binding.inputDistance.setText(String.valueOf(editing.distance));
         binding.inputNotes.setText(editing.notes);
+        selectedDateTime = editing.sessionDateEpochMillis;
+        updateDateTimeText();
         binding.buttonDelete.setVisibility(android.view.View.VISIBLE);
     }
 
+    private void showDatePicker() {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(selectedDateTime);
+        new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+            Calendar picked = Calendar.getInstance();
+            picked.setTimeInMillis(selectedDateTime);
+            picked.set(Calendar.YEAR, year);
+            picked.set(Calendar.MONTH, month);
+            picked.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+            selectedDateTime = picked.getTimeInMillis();
+            showTimePicker();
+        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
+    }
+
+    private void showTimePicker() {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(selectedDateTime);
+        new TimePickerDialog(this, (view, hourOfDay, minute) -> {
+            Calendar picked = Calendar.getInstance();
+            picked.setTimeInMillis(selectedDateTime);
+            picked.set(Calendar.HOUR_OF_DAY, hourOfDay);
+            picked.set(Calendar.MINUTE, minute);
+            picked.set(Calendar.SECOND, 0);
+            picked.set(Calendar.MILLISECOND, 0);
+            selectedDateTime = picked.getTimeInMillis();
+            updateDateTimeText();
+        }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true).show();
+    }
+
+    private void updateDateTimeText() {
+        binding.inputDateTime.setText(FormatUtils.dateTime(selectedDateTime));
+    }
+
     private void save() {
-        ActivitySession session = editing == null ? new ActivitySession() : editing;
-        session.petId = getIntent().getLongExtra(EXTRA_PET_ID, editing == null ? 0L : editing.petId);
-        session.activityType = String.valueOf(binding.inputActivityType.getSelectedItem());
-        session.durationMinutes = parseInt(text(binding.inputDuration), 0);
-        session.distance = text(binding.inputDistance).isEmpty() ? null : Double.parseDouble(text(binding.inputDistance));
-        session.distanceUnit = String.valueOf(binding.inputDistanceUnit.getSelectedItem());
-        session.sessionDateEpochMillis = readTag();
-        session.notes = text(binding.inputNotes);
-        if (session.durationMinutes <= 0) {
-            toast("Duration must be greater than zero");
-            return;
-        }
-        if (session.id == 0) repository.getDb().activitySessionDao().insert(session);
-        else repository.getDb().activitySessionDao().update(session);
+        ActivitySession item = editing == null ? new ActivitySession() : editing;
+        item.petId = getIntent().getLongExtra(EXTRA_PET_ID, editing == null ? 0L : editing.petId);
+        item.activityType = String.valueOf(binding.inputActivityType.getSelectedItem());
+        item.durationMinutes = Math.max(1, parseInt(text(binding.inputDuration), 1));
+        Double distance = parseOptionalDouble(text(binding.inputDistance));
+        item.distance = distance;
+        item.distanceUnit = distance == null ? null : "km";
+        item.sessionDateEpochMillis = selectedDateTime;
+        item.notes = text(binding.inputNotes);
+
+        if (item.id == 0L) repository.getDb().activitySessionDao().insert(item);
+        else repository.getDb().activitySessionDao().update(item);
+
         setResult(RESULT_OK, new Intent());
         finish();
     }
@@ -92,7 +124,7 @@ public class ActivitySessionFormActivity extends AppCompatActivity {
                 .setTitle(R.string.warning)
                 .setMessage(R.string.confirm_delete)
                 .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.delete, (d, w) -> {
+                .setPositiveButton(R.string.delete, (dialog, which) -> {
                     repository.getDb().activitySessionDao().delete(editing);
                     setResult(RESULT_OK);
                     finish();
@@ -100,30 +132,30 @@ public class ActivitySessionFormActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void selectSpinnerValue(android.widget.Spinner spinner, String value) {
+    private void selectSpinnerValue(String value) {
         if (value == null) return;
-        for (int i = 0; i < spinner.getCount(); i++) {
-            if (value.equals(String.valueOf(spinner.getItemAtPosition(i)))) {
-                spinner.setSelection(i);
-                break;
+        for (int i = 0; i < binding.inputActivityType.getCount(); i++) {
+            if (value.equals(String.valueOf(binding.inputActivityType.getItemAtPosition(i)))) {
+                binding.inputActivityType.setSelection(i);
+                return;
             }
         }
     }
 
-    private long readTag() {
-        Object tag = binding.inputDate.getTag();
-        return tag instanceof Long ? (Long) tag : System.currentTimeMillis();
+    private String text(android.widget.TextView view) {
+        return view.getText() == null ? "" : view.getText().toString().trim();
     }
 
     private int parseInt(String value, int fallback) {
         try { return Integer.parseInt(value); } catch (Exception e) { return fallback; }
     }
 
-    private String text(android.widget.EditText field) {
-        return field.getText() == null ? "" : field.getText().toString().trim();
-    }
-
-    private void toast(String value) {
-        Toast.makeText(this, value, Toast.LENGTH_SHORT).show();
+    private Double parseOptionalDouble(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        try { return Double.parseDouble(value.trim().replace(',', '.')); }
+        catch (Exception e) {
+            Toast.makeText(this, "Distance must be a number in kilometres", Toast.LENGTH_SHORT).show();
+            return null;
+        }
     }
 }

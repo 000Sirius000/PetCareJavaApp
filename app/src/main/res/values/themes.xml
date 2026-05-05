@@ -3,7 +3,7 @@
         <item name="colorPrimary">@color/pet_primary</item>
         <item name="colorOnPrimary">@color/pet_on_primary</item>
         <item name="colorSecondary">@color/pet_secondary</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorOnSecondary">@color/pet_on_primary</item>
         <item name="colorSurface">@color/pet_surface</item>
         <item name="colorOnSurface">@color/pet_text_primary</item>
         <item name="android:windowBackground">@color/pet_background</item>
@@ -11,18 +11,40 @@
         <item name="android:fontFamily">sans</item>
         <item name="android:statusBarColor">@color/pet_background</item>
         <item name="android:navigationBarColor">@color/pet_surface</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
         <item name="materialButtonStyle">@style/Widget.PetCare.Button</item>
         <item name="textInputStyle">@style/Widget.Material3.TextInputLayout.OutlinedBox</item>
         <item name="bottomNavigationStyle">@style/Widget.PetCare.BottomNavigationView</item>
     </style>
 
+    <style name="Theme.PetCare.Light" parent="Theme.PetCare">
+        <item name="colorPrimary">#7E57C2</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#9575CD</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+    </style>
+
+    <style name="Theme.PetCare.BlackYellow" parent="Theme.PetCare">
+        <item name="colorPrimary">#FFD600</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorSecondary">#F0B800</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+    </style>
+
+    <style name="Theme.PetCare.BlackPurple" parent="Theme.PetCare">
+        <item name="colorPrimary">#7E57C2</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#B388FF</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+    </style>
+
     <style name="Widget.PetCare.Button" parent="Widget.Material3.Button">
         <item name="cornerRadius">20dp</item>
         <item name="android:minHeight">52dp</item>
-        <item name="backgroundTint">@color/pet_primary</item>
-        <item name="android:textColor">@color/black</item>
+        <item name="backgroundTint">?attr/colorPrimary</item>
+        <item name="android:textColor">?attr/colorOnPrimary</item>
     </style>
 
     <style name="Widget.PetCare.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">

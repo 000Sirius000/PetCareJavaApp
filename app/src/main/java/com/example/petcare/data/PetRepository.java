@@ -345,6 +345,10 @@ public class PetRepository {
         pet.weeklyActivityGoalMinutes = 45;
         pet.minHealthyWeight = 10.0;
         pet.maxHealthyWeight = 14.0;
+        pet.internationalPetPassport = "INT-MILO-001";
+        pet.nationalPetPassport = "UA-MILO-001";
+        pet.microchipCode = "900000000000001";
+        pet.microchipImplantationDate = "2021-06-01";
         long petId = savePet(pet);
 
         VetVisit visit = new VetVisit();
@@ -372,6 +376,7 @@ public class PetRepository {
         schedule.foodType = "Dry food";
         schedule.portion = "100";
         schedule.portionUnit = "g";
+        schedule.createdAtEpochMillis = System.currentTimeMillis();
         long scheduleId = db.feedingScheduleDao().insert(schedule);
         logFeeding(petId, scheduleId, schedule.mealName, schedule.portion + " g");
 

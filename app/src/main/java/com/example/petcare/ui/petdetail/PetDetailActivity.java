@@ -13,6 +13,7 @@ import com.example.petcare.ui.petdetail.sections.ActivityFragment;
 import com.example.petcare.ui.petdetail.sections.FeedingFragment;
 import com.example.petcare.ui.petdetail.sections.HealthFragment;
 import com.example.petcare.ui.petdetail.sections.WeightFragment;
+import com.example.petcare.util.ThemeUtils;
 
 public class PetDetailActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
@@ -25,12 +26,15 @@ public class PetDetailActivity extends AppCompatActivity {
 
     private ActivityPetDetailBinding binding;
     private long petId;
+    private String themeAtCreate;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeUtils.applyActivityTheme(this);
         super.onCreate(savedInstanceState);
         binding = ActivityPetDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        themeAtCreate = ThemeUtils.getSavedTheme(this);
 
         petId = getIntent().getLongExtra(EXTRA_PET_ID, 0L);
         Pet pet = new PetRepository(this).getPet(petId);
@@ -75,6 +79,15 @@ public class PetDetailActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String savedTheme = ThemeUtils.getSavedTheme(this);
+        if (themeAtCreate != null && !savedTheme.equals(themeAtCreate)) {
+            recreate();
+        }
     }
 
     private void showFragment(Fragment fragment) {

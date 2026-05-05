@@ -27,6 +27,7 @@ import com.example.petcare.tracking.WalkTrackingService;
 import com.example.petcare.tracking.WalkTrackingStore;
 import com.example.petcare.ui.petdetail.PetDetailActivity;
 import com.example.petcare.util.FormatUtils;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,8 @@ public class DashboardFragment extends Fragment {
     private Pet selectedPet;
 
     private final Handler trackerUiHandler = new Handler(Looper.getMainLooper());
-    private WalkTrackingStore.State justFinishedState;
+    private long finishedElapsedMs = -1L;
+    private double finishedDistanceMeters = 0d;
     private long showFinishedUntil = 0L;
 
     private final Runnable trackerUiTicker = new Runnable() {
@@ -52,7 +54,8 @@ public class DashboardFragment extends Fragment {
     private final Runnable resetAfterFinish = new Runnable() {
         @Override
         public void run() {
-            justFinishedState = null;
+            finishedElapsedMs = -1L;
+            finishedDistanceMeters = 0d;
             showFinishedUntil = 0L;
             refreshTrackerCard();
             reload();
@@ -70,6 +73,7 @@ public class DashboardFragment extends Fragment {
         repository = new PetRepository(requireContext());
 
         binding.dashboardSwipe.setOnRefreshListener(this::reload);
+        binding.petSummaryCard.setOnClickListener(v -> openPetDetail(PetDetailActivity.TAB_WEIGHT));
         binding.activitySummaryCard.setOnClickListener(v -> openPetDetail(PetDetailActivity.TAB_ACTIVITY));
         binding.remindersCard.setOnClickListener(v -> openPetDetail(PetDetailActivity.TAB_HEALTH));
 
@@ -185,10 +189,10 @@ public class DashboardFragment extends Fragment {
     private void refreshTrackerCard() {
         if (selectedPet == null || binding == null) return;
 
-        if (justFinishedState != null && System.currentTimeMillis() < showFinishedUntil) {
+        if (finishedElapsedMs >= 0L && System.currentTimeMillis() < showFinishedUntil) {
             binding.trackerStatus.setText("Walk saved");
-            binding.trackerElapsed.setText(WalkTrackingStore.formatElapsed(justFinishedState.elapsedNow()));
-            binding.trackerDistance.setText(WalkTrackingStore.formatDistanceKm(justFinishedState.distanceMeters));
+            binding.trackerElapsed.setText(WalkTrackingStore.formatElapsed(finishedElapsedMs));
+            binding.trackerDistance.setText(WalkTrackingStore.formatDistanceKm(finishedDistanceMeters));
             binding.buttonStartWalk.setVisibility(View.GONE);
             binding.buttonPauseResumeWalk.setVisibility(View.GONE);
             binding.buttonFinishWalk.setVisibility(View.GONE);
@@ -282,7 +286,8 @@ public class DashboardFragment extends Fragment {
         WalkTrackingStore.State state = WalkTrackingStore.read(requireContext());
         if (selectedPet == null || !state.active || state.petId != selectedPet.id) return;
 
-        justFinishedState = state;
+        finishedElapsedMs = state.elapsedNow();
+        finishedDistanceMeters = state.distanceMeters;
         showFinishedUntil = System.currentTimeMillis() + 5000L;
 
         Intent intent = new Intent(requireContext(), WalkTrackingService.class);

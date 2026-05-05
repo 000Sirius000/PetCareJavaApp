@@ -1,17 +1,18 @@
 <resources>
-    <color name="pet_primary">#FFD600</color>
-    <color name="pet_on_primary">#000000</color>
-    <color name="pet_secondary">#F0B800</color>
-    <color name="pet_background">#000000</color>
-    <color name="pet_surface">#111111</color>
-    <color name="pet_surface_variant">#1A1A1A</color>
-    <color name="pet_border">#2A2A2A</color>
-    <color name="pet_text_primary">#FFFFFF</color>
-    <color name="pet_text_secondary">#B0B0B0</color>
-    <color name="pet_error">#FF7043</color>
-    <color name="pet_success">#66BB6A</color>
-    <color name="pet_warning">#FF7043</color>
-    <color name="icon_primary">#FFD600</color>
+    <color name="pet_primary">#7E57C2</color>
+    <color name="pet_on_primary">#FFFFFF</color>
+    <color name="pet_secondary">#9575CD</color>
+    <color name="pet_background">#FFF8F2</color>
+    <color name="pet_surface">#FFFFFF</color>
+    <color name="pet_surface_variant">#F3EDF7</color>
+    <color name="pet_border">#D6CFE1</color>
+    <color name="pet_text_primary">#1D1B20</color>
+    <color name="pet_text_secondary">#625B71</color>
+    <color name="pet_error">#B3261E</color>
+    <color name="pet_success">#2E7D32</color>
+    <color name="pet_warning">#F57C00</color>
+    <color name="icon_primary">#7E57C2</color>
+    <color name="pet_activity_distance">#2E7D32</color>
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
 </resources>

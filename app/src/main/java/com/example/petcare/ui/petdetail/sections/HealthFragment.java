@@ -40,7 +40,8 @@ public class HealthFragment extends Fragment {
     private long petId;
     private FragmentHealthSectionBinding binding;
     private PetRepository repository;
-    private SimpleRowAdapter adapter;
+    private SimpleRowAdapter completedAdapter;
+    private SimpleRowAdapter remindersAdapter;
 
     private final ActivityResultLauncher<Intent> formLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> reload());
@@ -71,92 +72,118 @@ public class HealthFragment extends Fragment {
         repository = new PetRepository(requireContext());
         petId = requireArguments().getLong(ARG_PET_ID);
 
-        adapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<Object>() {
-            @Override
-            public String title(Object item) {
-                if (item instanceof VetVisit) return "Vet visit";
-                if (item instanceof Vaccination) return "Vaccination";
-                if (item instanceof Medication) return "Medication";
-                if (item instanceof SymptomEntry) return "Symptom";
-                if (item instanceof ReproductiveEvent) return "Reproductive: " + ((ReproductiveEvent) item).eventType;
-                return "";
-            }
-
-            @Override
-            public String subtitle(Object item) {
-                if (item instanceof VetVisit) {
-                    VetVisit visit = (VetVisit) item;
-                    return visit.reason + " • " + visit.clinicName;
-                }
-                if (item instanceof Vaccination) {
-                    return ((Vaccination) item).vaccineName;
-                }
-                if (item instanceof Medication) {
-                    Medication medication = (Medication) item;
-                    return medication.medicationName + " • " + medication.dosage + " " + medication.dosageUnit;
-                }
-                if (item instanceof SymptomEntry) {
-                    SymptomEntry entry = (SymptomEntry) item;
-                    return entry.tagsCsv + " • " + entry.severity;
-                }
-                if (item instanceof ReproductiveEvent) {
-                    ReproductiveEvent entry = (ReproductiveEvent) item;
-                    return FormatUtils.nullable(entry.symptomsObserved);
-                }
-                return "";
-            }
-
-            @Override
-            public String meta(Object item) {
-                if (item instanceof VetVisit) return FormatUtils.date(((VetVisit) item).visitDateEpochMillis);
-                if (item instanceof Vaccination) return "Given: " + FormatUtils.date(((Vaccination) item).administeredAt);
-                if (item instanceof Medication) return "Next dose: " + FormatUtils.dateTime(((Medication) item).nextReminderAt);
-                if (item instanceof SymptomEntry) return FormatUtils.dateTime(((SymptomEntry) item).recordedAt);
-                if (item instanceof ReproductiveEvent) return FormatUtils.date(((ReproductiveEvent) item).startDateEpochMillis);
-                return "";
-            }
+        completedAdapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<Object>() {
+            @Override public String title(Object item) { return titleFor(item); }
+            @Override public String subtitle(Object item) { return subtitleFor(item); }
+            @Override public String meta(Object item) { return metaFor(item); }
+        });
+        remindersAdapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<Object>() {
+            @Override public String title(Object item) { return reminderTitle(item); }
+            @Override public String subtitle(Object item) { return reminderSubtitle(item); }
+            @Override public String meta(Object item) { return reminderMeta(item); }
         });
 
-        adapter.setOnRowClickListener(item -> {
-            Intent intent;
-            if (item instanceof VetVisit) {
-                intent = new Intent(requireContext(), VetVisitFormActivity.class);
-                intent.putExtra(VetVisitFormActivity.EXTRA_PET_ID, petId);
-                intent.putExtra(VetVisitFormActivity.EXTRA_VISIT_ID, ((VetVisit) item).id);
-            } else if (item instanceof Vaccination) {
-                intent = new Intent(requireContext(), VaccinationFormActivity.class);
-                intent.putExtra(VaccinationFormActivity.EXTRA_PET_ID, petId);
-                intent.putExtra(VaccinationFormActivity.EXTRA_VACCINATION_ID, ((Vaccination) item).id);
-            } else if (item instanceof Medication) {
-                intent = new Intent(requireContext(), MedicationFormActivity.class);
-                intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
-                intent.putExtra(MedicationFormActivity.EXTRA_MEDICATION_ID, ((Medication) item).id);
-            } else if (item instanceof SymptomEntry) {
-                intent = new Intent(requireContext(), SymptomEntryFormActivity.class);
-                intent.putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);
-                intent.putExtra(SymptomEntryFormActivity.EXTRA_SYMPTOM_ID, ((SymptomEntry) item).id);
-            } else if (item instanceof ReproductiveEvent) {
-                intent = new Intent(requireContext(), ReproductiveEventFormActivity.class);
-                intent.putExtra(ReproductiveEventFormActivity.EXTRA_PET_ID, petId);
-                intent.putExtra(ReproductiveEventFormActivity.EXTRA_EVENT_ID, ((ReproductiveEvent) item).id);
-            } else {
-                return;
-            }
-            formLauncher.launch(intent);
-        });
+        completedAdapter.setOnRowClickListener(this::openItem);
+        remindersAdapter.setOnRowClickListener(this::openItem);
 
-        binding.sectionRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.sectionRecycler.setAdapter(adapter);
+        binding.completedRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.completedRecycler.setAdapter(completedAdapter);
+        binding.remindersRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.remindersRecycler.setAdapter(remindersAdapter);
         binding.sectionActionButton.setOnClickListener(this::showMenu);
+
         reload();
         return binding.getRoot();
     }
 
     private void reload() {
-        List<Object> items = repository.getHealthTimeline(petId);
-        items.sort((left, right) -> Long.compare(getItemTime(right), getItemTime(left)));
-        adapter.submitList(items);
-        binding.sectionEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
+        List<Object> reminders = repository.getUpcomingReminderPreview(petId);
+        remindersAdapter.submitList(reminders);
+        binding.remindersEmpty.setVisibility(reminders.isEmpty() ? View.VISIBLE : View.GONE);
+
+        List<Object> completed = repository.getHealthTimeline(petId);
+        completed.sort((left, right) -> Long.compare(getItemTime(right), getItemTime(left)));
+        completedAdapter.submitList(completed);
+        binding.completedEmpty.setVisibility(completed.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private void openItem(Object item) {
+        Intent intent;
+        if (item instanceof VetVisit) {
+            intent = new Intent(requireContext(), VetVisitFormActivity.class);
+            intent.putExtra(VetVisitFormActivity.EXTRA_PET_ID, petId);
+            intent.putExtra(VetVisitFormActivity.EXTRA_VISIT_ID, ((VetVisit) item).id);
+        } else if (item instanceof Vaccination) {
+            intent = new Intent(requireContext(), VaccinationFormActivity.class);
+            intent.putExtra(VaccinationFormActivity.EXTRA_PET_ID, petId);
+            intent.putExtra(VaccinationFormActivity.EXTRA_VACCINATION_ID, ((Vaccination) item).id);
+        } else if (item instanceof Medication) {
+            intent = new Intent(requireContext(), MedicationFormActivity.class);
+            intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
+            intent.putExtra(MedicationFormActivity.EXTRA_MEDICATION_ID, ((Medication) item).id);
+        } else if (item instanceof SymptomEntry) {
+            intent = new Intent(requireContext(), SymptomEntryFormActivity.class);
+            intent.putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);
+            intent.putExtra(SymptomEntryFormActivity.EXTRA_SYMPTOM_ID, ((SymptomEntry) item).id);
+        } else if (item instanceof ReproductiveEvent) {
+            intent = new Intent(requireContext(), ReproductiveEventFormActivity.class);
+            intent.putExtra(ReproductiveEventFormActivity.EXTRA_PET_ID, petId);
+            intent.putExtra(ReproductiveEventFormActivity.EXTRA_EVENT_ID, ((ReproductiveEvent) item).id);
+        } else return;
+        formLauncher.launch(intent);
+    }
+
+    private String titleFor(Object item) {
+        if (item instanceof VetVisit) return "Vet visit";
+        if (item instanceof Vaccination) return "Completed vaccination";
+        if (item instanceof Medication) return "Medication record";
+        if (item instanceof SymptomEntry) return "Symptom";
+        if (item instanceof ReproductiveEvent) return "Reproductive: " + ((ReproductiveEvent) item).eventType;
+        return "";
+    }
+
+    private String subtitleFor(Object item) {
+        if (item instanceof VetVisit) {
+            VetVisit visit = (VetVisit) item;
+            return FormatUtils.nullable(visit.reason) + " • " + FormatUtils.nullable(visit.clinicName);
+        }
+        if (item instanceof Vaccination) return ((Vaccination) item).vaccineName;
+        if (item instanceof Medication) {
+            Medication medication = (Medication) item;
+            return medication.medicationName + " • " + medication.dosage + " " + medication.dosageUnit;
+        }
+        if (item instanceof SymptomEntry) {
+            SymptomEntry entry = (SymptomEntry) item;
+            return entry.tagsCsv + " • " + entry.severity;
+        }
+        if (item instanceof ReproductiveEvent) return FormatUtils.nullable(((ReproductiveEvent) item).symptomsObserved);
+        return "";
+    }
+
+    private String metaFor(Object item) {
+        if (item instanceof VetVisit) return FormatUtils.date(((VetVisit) item).visitDateEpochMillis);
+        if (item instanceof Vaccination) return "Given: " + FormatUtils.date(((Vaccination) item).administeredAt);
+        if (item instanceof Medication) return "Started: " + FormatUtils.date(((Medication) item).startDateEpochMillis);
+        if (item instanceof SymptomEntry) return FormatUtils.dateTime(((SymptomEntry) item).recordedAt);
+        if (item instanceof ReproductiveEvent) return FormatUtils.date(((ReproductiveEvent) item).startDateEpochMillis);
+        return "";
+    }
+
+    private String reminderTitle(Object item) {
+        if (item instanceof Medication) return "Medication reminder";
+        if (item instanceof Vaccination) return "Vaccination reminder";
+        return "Reminder";
+    }
+
+    private String reminderSubtitle(Object item) {
+        if (item instanceof Medication) return ((Medication) item).medicationName;
+        if (item instanceof Vaccination) return ((Vaccination) item).vaccineName;
+        return "";
+    }
+
+    private String reminderMeta(Object item) {
+        long time = repository.reminderTime(item);
+        return time == Long.MAX_VALUE ? "No date" : FormatUtils.dateTime(time);
     }
 
     private long getItemTime(Object item) {
@@ -175,32 +202,17 @@ public class HealthFragment extends Fragment {
         menu.getMenu().add("Add vaccination");
         menu.getMenu().add("Add medication");
         menu.getMenu().add("Add symptom");
-        if (pet != null && "female".equalsIgnoreCase(String.valueOf(pet.sex))) {
-            menu.getMenu().add("Add reproductive event");
-        }
+        if (pet != null && "female".equalsIgnoreCase(String.valueOf(pet.sex))) menu.getMenu().add("Add reproductive event");
         menu.getMenu().add("Export health PDF");
         menu.setOnMenuItemClickListener(item -> {
             String title = String.valueOf(item.getTitle());
             Intent intent = null;
-            if ("Add vet visit".equals(title)) {
-                intent = new Intent(requireContext(), VetVisitFormActivity.class);
-                intent.putExtra(VetVisitFormActivity.EXTRA_PET_ID, petId);
-            } else if ("Add vaccination".equals(title)) {
-                intent = new Intent(requireContext(), VaccinationFormActivity.class);
-                intent.putExtra(VaccinationFormActivity.EXTRA_PET_ID, petId);
-            } else if ("Add medication".equals(title)) {
-                intent = new Intent(requireContext(), MedicationFormActivity.class);
-                intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
-            } else if ("Add symptom".equals(title)) {
-                intent = new Intent(requireContext(), SymptomEntryFormActivity.class);
-                intent.putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);
-            } else if ("Add reproductive event".equals(title)) {
-                intent = new Intent(requireContext(), ReproductiveEventFormActivity.class);
-                intent.putExtra(ReproductiveEventFormActivity.EXTRA_PET_ID, petId);
-            } else if ("Export health PDF".equals(title)) {
-                pdfExportLauncher.launch("pet_health_" + petId + ".pdf");
-                return true;
-            }
+            if ("Add vet visit".equals(title)) intent = new Intent(requireContext(), VetVisitFormActivity.class).putExtra(VetVisitFormActivity.EXTRA_PET_ID, petId);
+            else if ("Add vaccination".equals(title)) intent = new Intent(requireContext(), VaccinationFormActivity.class).putExtra(VaccinationFormActivity.EXTRA_PET_ID, petId);
+            else if ("Add medication".equals(title)) intent = new Intent(requireContext(), MedicationFormActivity.class).putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
+            else if ("Add symptom".equals(title)) intent = new Intent(requireContext(), SymptomEntryFormActivity.class).putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);
+            else if ("Add reproductive event".equals(title)) intent = new Intent(requireContext(), ReproductiveEventFormActivity.class).putExtra(ReproductiveEventFormActivity.EXTRA_PET_ID, petId);
+            else if ("Export health PDF".equals(title)) { pdfExportLauncher.launch("pet_health_" + petId + ".pdf"); return true; }
             if (intent != null) formLauncher.launch(intent);
             return true;
         });

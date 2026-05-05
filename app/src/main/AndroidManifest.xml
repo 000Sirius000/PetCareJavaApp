@@ -19,6 +19,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PetCare">
+        <activity android:name=".ui.petdetail.sections.ActivityLogActivity" android:exported="false" />
         <activity android:name=".ui.forms.ReproductiveEventFormActivity" android:exported="false" />
         <activity android:name=".ui.forms.ActivitySessionFormActivity" android:exported="false" />
         <activity android:name=".ui.forms.FeedingScheduleFormActivity" android:exported="false" />

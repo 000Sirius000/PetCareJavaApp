@@ -15,6 +15,7 @@ import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.Pet;
 import com.example.petcare.databinding.ItemPetCardBinding;
 import com.example.petcare.util.AgeUtils;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,10 +72,11 @@ public class PetAdapter extends RecyclerView.Adapter<PetAdapter.PetViewHolder> {
 
         holder.binding.selectedBadge.setVisibility(selected && mode == Mode.PETS ? View.VISIBLE : View.GONE);
         holder.binding.petCardRoot.setStrokeWidth(selected && mode == Mode.PETS ? 4 : 1);
-        holder.binding.petCardRoot.setStrokeColor(ContextCompat.getColor(
-                holder.itemView.getContext(),
-                selected && mode == Mode.PETS ? R.color.pet_primary : R.color.pet_border
-        ));
+        holder.binding.petCardRoot.setStrokeColor(
+                selected && mode == Mode.PETS
+                        ? ThemeUtils.getAccentColor(holder.itemView.getContext())
+                        : ContextCompat.getColor(holder.itemView.getContext(), R.color.pet_border)
+        );
 
         if (!TextUtils.isEmpty(pet.photoUri)) {
             holder.binding.petThumbnail.setImageURI(Uri.parse(pet.photoUri));

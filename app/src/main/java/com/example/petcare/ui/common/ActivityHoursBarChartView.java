@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat;
 import com.example.petcare.R;
 import com.example.petcare.data.entities.ActivitySession;
 import com.example.petcare.util.FormatUtils;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -47,7 +48,7 @@ public class ActivityHoursBarChartView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         axisPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));
-        barPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_primary));
+        barPaint.setColor(ThemeUtils.getAccentColor(getContext()));
         textPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_secondary));
         insideTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.black));
 

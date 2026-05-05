@@ -34,58 +34,42 @@ import com.example.petcare.data.entities.VetVisit;
 import com.example.petcare.data.entities.WeightEntry;
 
 @Database(
-        entities = {
-                Pet.class,
-                VetVisit.class,
-                Vaccination.class,
-                Medication.class,
-                FeedingSchedule.class,
-                FeedingLog.class,
-                MedicationLog.class,
-                ActivitySession.class,
-                WeightEntry.class,
-                SymptomTag.class,
-                SymptomEntry.class,
-                ReproductiveEvent.class
-        },
-        version = 3,
+        entities = { Pet.class, VetVisit.class, Vaccination.class, Medication.class, FeedingSchedule.class,
+                FeedingLog.class, MedicationLog.class, ActivitySession.class, WeightEntry.class,
+                SymptomTag.class, SymptomEntry.class, ReproductiveEvent.class },
+        version = 4,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase instance;
 
-    /**
-     * Preserves existing user data from the old schema and only adds the new table.
-     */
     public static final Migration MIGRATION_1_2 = new Migration(1, 2) {
-        @Override
-        public void migrate(SupportSQLiteDatabase db) {
+        @Override public void migrate(SupportSQLiteDatabase db) {
             db.execSQL("CREATE TABLE IF NOT EXISTS `reproductive_events` (" +
                     "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                    "`petId` INTEGER NOT NULL, " +
-                    "`eventType` TEXT, " +
-                    "`startDateEpochMillis` INTEGER NOT NULL, " +
-                    "`estimatedEndDateEpochMillis` INTEGER, " +
-                    "`resolutionDateEpochMillis` INTEGER, " +
-                    "`clinic` TEXT, " +
-                    "`symptomsObserved` TEXT, " +
-                    "`vetConsulted` INTEGER NOT NULL, " +
-                    "`notes` TEXT)");
+                    "`petId` INTEGER NOT NULL, `eventType` TEXT, `startDateEpochMillis` INTEGER NOT NULL, " +
+                    "`estimatedEndDateEpochMillis` INTEGER, `resolutionDateEpochMillis` INTEGER, `clinic` TEXT, " +
+                    "`symptomsObserved` TEXT, `vetConsulted` INTEGER NOT NULL, `notes` TEXT)");
         }
     };
 
-    /**
-     * UI/feature update:
-     * - healthy min/max weight are now stored on the pet profile;
-     * - feeding log rows now carry the food type used by the stacked chart.
-     */
     public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
-        @Override
-        public void migrate(SupportSQLiteDatabase db) {
+        @Override public void migrate(SupportSQLiteDatabase db) {
             db.execSQL("ALTER TABLE `pets` ADD COLUMN `minHealthyWeight` REAL");
             db.execSQL("ALTER TABLE `pets` ADD COLUMN `maxHealthyWeight` REAL");
             db.execSQL("ALTER TABLE `feeding_logs` ADD COLUMN `foodType` TEXT");
             db.execSQL("UPDATE `feeding_logs` SET `foodType` = 'Dry food' WHERE `foodType` IS NULL OR TRIM(`foodType`) = ''");
+        }
+    };
+
+    public static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `pets` ADD COLUMN `internationalPetPassport` TEXT");
+            db.execSQL("ALTER TABLE `pets` ADD COLUMN `nationalPetPassport` TEXT");
+            db.execSQL("ALTER TABLE `pets` ADD COLUMN `microchipCode` TEXT");
+            db.execSQL("ALTER TABLE `pets` ADD COLUMN `microchipImplantationDate` TEXT");
+            db.execSQL("ALTER TABLE `feeding_schedules` ADD COLUMN `createdAtEpochMillis` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("UPDATE `feeding_schedules` SET `createdAtEpochMillis` = strftime('%s','now') * 1000 WHERE `createdAtEpochMillis` = 0");
         }
     };
 
@@ -106,11 +90,8 @@ public abstract class AppDatabase extends RoomDatabase {
         if (instance == null) {
             synchronized (AppDatabase.class) {
                 if (instance == null) {
-                    instance = Room.databaseBuilder(
-                                    context.getApplicationContext(),
-                                    AppDatabase.class,
-                                    "petcare.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    instance = Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, "petcare.db")
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                             .allowMainThreadQueries()
                             .build();
                 }
