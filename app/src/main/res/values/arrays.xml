@@ -52,4 +52,10 @@
         <item>Pregnancy</item>
         <item>Spay / neutering</item>
     </string-array>
+    <string-array name="tracking_activity_options">
+        <item>Walk</item>
+        <item>Run</item>
+        <item>Play</item>
+        <item>Swim</item>
+    </string-array>
 </resources>

@@ -1,20 +1,29 @@
 package com.example.petcare.ui.petdetail.sections;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.petcare.R;
 import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.Medication;
 import com.example.petcare.data.entities.Pet;
@@ -23,7 +32,6 @@ import com.example.petcare.data.entities.SymptomEntry;
 import com.example.petcare.data.entities.Vaccination;
 import com.example.petcare.data.entities.VetVisit;
 import com.example.petcare.databinding.FragmentHealthSectionBinding;
-import com.example.petcare.ui.common.SimpleRowAdapter;
 import com.example.petcare.ui.forms.MedicationFormActivity;
 import com.example.petcare.ui.forms.ReproductiveEventFormActivity;
 import com.example.petcare.ui.forms.SymptomEntryFormActivity;
@@ -31,6 +39,7 @@ import com.example.petcare.ui.forms.VaccinationFormActivity;
 import com.example.petcare.ui.forms.VetVisitFormActivity;
 import com.example.petcare.util.FormatUtils;
 import com.example.petcare.util.HealthPdfExporter;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.List;
 
@@ -40,8 +49,7 @@ public class HealthFragment extends Fragment {
     private long petId;
     private FragmentHealthSectionBinding binding;
     private PetRepository repository;
-    private SimpleRowAdapter completedAdapter;
-    private SimpleRowAdapter remindersAdapter;
+    private boolean showingReminders = true;
 
     private final ActivityResultLauncher<Intent> formLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> reload());
@@ -71,40 +79,156 @@ public class HealthFragment extends Fragment {
         binding = FragmentHealthSectionBinding.inflate(inflater, container, false);
         repository = new PetRepository(requireContext());
         petId = requireArguments().getLong(ARG_PET_ID);
-
-        completedAdapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<Object>() {
-            @Override public String title(Object item) { return titleFor(item); }
-            @Override public String subtitle(Object item) { return subtitleFor(item); }
-            @Override public String meta(Object item) { return metaFor(item); }
-        });
-        remindersAdapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<Object>() {
-            @Override public String title(Object item) { return reminderTitle(item); }
-            @Override public String subtitle(Object item) { return reminderSubtitle(item); }
-            @Override public String meta(Object item) { return reminderMeta(item); }
-        });
-
-        completedAdapter.setOnRowClickListener(this::openItem);
-        remindersAdapter.setOnRowClickListener(this::openItem);
-
-        binding.completedRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.completedRecycler.setAdapter(completedAdapter);
-        binding.remindersRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.remindersRecycler.setAdapter(remindersAdapter);
+        binding.buttonRemindersTab.setOnClickListener(v -> { showingReminders = true; reload(); });
+        binding.buttonLogTab.setOnClickListener(v -> { showingReminders = false; reload(); });
         binding.sectionActionButton.setOnClickListener(this::showMenu);
-
         reload();
         return binding.getRoot();
     }
 
-    private void reload() {
-        List<Object> reminders = repository.getUpcomingReminderPreview(petId);
-        remindersAdapter.submitList(reminders);
-        binding.remindersEmpty.setVisibility(reminders.isEmpty() ? View.VISIBLE : View.GONE);
+    @Override
+    public void onResume() {
+        super.onResume();
+        reload();
+    }
 
+    private void reload() {
+        updateTabs();
+        binding.healthListContainer.removeAllViews();
+        if (showingReminders) renderReminders();
+        else renderLog();
+    }
+
+    private void updateTabs() {
+        styleTab(binding.buttonRemindersTab, showingReminders);
+        styleTab(binding.buttonLogTab, !showingReminders);
+    }
+
+    private void renderReminders() {
+        List<Object> reminders = repository.getUpcomingReminderPreview(petId);
+        binding.healthEmpty.setVisibility(reminders.isEmpty() ? View.VISIBLE : View.GONE);
+        binding.healthEmpty.setText("No upcoming health reminders");
+        for (Object item : reminders) binding.healthListContainer.addView(reminderCard(item));
+    }
+
+    private void renderLog() {
         List<Object> completed = repository.getHealthTimeline(petId);
         completed.sort((left, right) -> Long.compare(getItemTime(right), getItemTime(left)));
-        completedAdapter.submitList(completed);
-        binding.completedEmpty.setVisibility(completed.isEmpty() ? View.VISIBLE : View.GONE);
+        binding.healthEmpty.setVisibility(completed.isEmpty() ? View.VISIBLE : View.GONE);
+        binding.healthEmpty.setText("No completed health entries yet");
+        for (Object item : completed) binding.healthListContainer.addView(logCard(item));
+    }
+
+    private View reminderCard(Object item) {
+        LinearLayout row = baseCard(true);
+        LinearLayout body = bodyColumn();
+        TextView type = smallLabel(item instanceof Vaccination ? "Vaccination" : "Medication", true);
+        TextView title = titleText(reminderTitle(item));
+        TextView meta = metaText(reminderMeta(item));
+        body.addView(type); body.addView(title); body.addView(meta);
+        TextView chevron = chevron();
+        CheckBox checkBox = new CheckBox(requireContext());
+        checkBox.setButtonTintList(android.content.res.ColorStateList.valueOf(ThemeUtils.getAccentColor(requireContext())));
+        checkBox.setOnClickListener(v -> completeReminder(item));
+        row.addView(body, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(chevron);
+        row.addView(checkBox);
+        row.setOnClickListener(v -> openItem(item));
+        return row;
+    }
+
+    private View logCard(Object item) {
+        LinearLayout row = baseCard(false);
+        LinearLayout body = bodyColumn();
+        body.addView(smallLabel(titleFor(item), false));
+        body.addView(titleText(subtitleFor(item)));
+        String meta = metaFor(item);
+        if (!meta.trim().isEmpty()) body.addView(metaText(meta));
+        TextView chevron = chevron();
+        CheckBox checkBox = new CheckBox(requireContext());
+        checkBox.setChecked(true);
+        checkBox.setEnabled(false);
+        row.addView(body, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(chevron);
+        row.addView(checkBox);
+        row.setOnClickListener(v -> openItem(item));
+        return row;
+    }
+
+    private LinearLayout baseCard(boolean upcoming) {
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(10), dp(8), dp(10));
+        row.setClickable(true);
+        row.setFocusable(true);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(ContextCompat.getColor(requireContext(), R.color.pet_surface));
+        bg.setCornerRadius(dp(14));
+        bg.setStroke(dp(upcoming ? 3 : 1), upcoming ? ThemeUtils.getAccentColor(requireContext()) : ContextCompat.getColor(requireContext(), R.color.pet_border));
+        row.setBackground(bg);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, 0, 0, dp(10));
+        row.setLayoutParams(params);
+        return row;
+    }
+
+    private LinearLayout bodyColumn() {
+        LinearLayout body = new LinearLayout(requireContext());
+        body.setOrientation(LinearLayout.VERTICAL);
+        return body;
+    }
+
+    private TextView smallLabel(String text, boolean accent) {
+        TextView view = new TextView(requireContext());
+        view.setText(text == null ? "" : text.toUpperCase(java.util.Locale.ROOT));
+        view.setTextSize(10);
+        view.setTypeface(Typeface.DEFAULT_BOLD);
+        view.setTextColor(accent ? ThemeUtils.getAccentColor(requireContext()) : ContextCompat.getColor(requireContext(), R.color.pet_text_secondary));
+        return view;
+    }
+
+    private TextView titleText(String text) {
+        TextView view = new TextView(requireContext());
+        view.setText(text == null || text.trim().isEmpty() ? "—" : text.trim());
+        view.setTextSize(15);
+        view.setTypeface(Typeface.DEFAULT_BOLD);
+        view.setTextColor(ContextCompat.getColor(requireContext(), R.color.pet_text_primary));
+        return view;
+    }
+
+    private TextView metaText(String text) {
+        TextView view = new TextView(requireContext());
+        view.setText(text == null ? "" : text.trim());
+        view.setTextSize(13);
+        view.setTextColor(ContextCompat.getColor(requireContext(), R.color.pet_text_secondary));
+        return view;
+    }
+
+    private TextView chevron() {
+        TextView view = new TextView(requireContext());
+        view.setText("›");
+        view.setTextSize(24);
+        view.setTextColor(ContextCompat.getColor(requireContext(), R.color.pet_text_secondary));
+        view.setPadding(dp(8), 0, dp(8), 0);
+        return view;
+    }
+
+    private void completeReminder(Object item) {
+        if (item instanceof Medication) {
+            Medication medication = (Medication) item;
+            repository.logMedication(petId, medication.id, false);
+            medication.nextReminderAt = System.currentTimeMillis() + Math.max(1, medication.frequencyIntervalDays) * 24L * 60 * 60 * 1000;
+            repository.getDb().medicationDao().update(medication);
+            Toast.makeText(requireContext(), "Medication completed", Toast.LENGTH_SHORT).show();
+        } else if (item instanceof Vaccination) {
+            Vaccination vaccination = (Vaccination) item;
+            vaccination.administeredAt = System.currentTimeMillis();
+            vaccination.nextDueAt = null;
+            repository.getDb().vaccinationDao().update(vaccination);
+            Toast.makeText(requireContext(), "Vaccination completed", Toast.LENGTH_SHORT).show();
+        }
+        reload();
     }
 
     private void openItem(Object item) {
@@ -135,55 +259,51 @@ public class HealthFragment extends Fragment {
 
     private String titleFor(Object item) {
         if (item instanceof VetVisit) return "Vet visit";
-        if (item instanceof Vaccination) return "Completed vaccination";
+        if (item instanceof Vaccination) return "Vaccination";
         if (item instanceof Medication) return "Medication record";
         if (item instanceof SymptomEntry) return "Symptom";
-        if (item instanceof ReproductiveEvent) return "Reproductive: " + ((ReproductiveEvent) item).eventType;
-        return "";
+        if (item instanceof ReproductiveEvent) return "Reproductive";
+        return "Entry";
     }
 
     private String subtitleFor(Object item) {
         if (item instanceof VetVisit) {
             VetVisit visit = (VetVisit) item;
-            return FormatUtils.nullable(visit.reason) + " • " + FormatUtils.nullable(visit.clinicName);
+            return FormatUtils.joinNonEmpty(" · ", visit.reason, visit.clinicName);
         }
         if (item instanceof Vaccination) return ((Vaccination) item).vaccineName;
         if (item instanceof Medication) {
             Medication medication = (Medication) item;
-            return medication.medicationName + " • " + medication.dosage + " " + medication.dosageUnit;
+            return FormatUtils.joinNonEmpty(" · ", medication.medicationName, FormatUtils.joinNonEmpty(" ", medication.dosage, medication.dosageUnit));
         }
         if (item instanceof SymptomEntry) {
             SymptomEntry entry = (SymptomEntry) item;
-            return entry.tagsCsv + " • " + entry.severity;
+            return FormatUtils.joinNonEmpty(" · ", entry.tagsCsv, entry.severity);
         }
-        if (item instanceof ReproductiveEvent) return FormatUtils.nullable(((ReproductiveEvent) item).symptomsObserved);
+        if (item instanceof ReproductiveEvent) return FormatUtils.joinNonEmpty(" · ", ((ReproductiveEvent) item).eventType, ((ReproductiveEvent) item).symptomsObserved);
         return "";
     }
 
     private String metaFor(Object item) {
-        if (item instanceof VetVisit) return FormatUtils.date(((VetVisit) item).visitDateEpochMillis);
-        if (item instanceof Vaccination) return "Given: " + FormatUtils.date(((Vaccination) item).administeredAt);
-        if (item instanceof Medication) return "Started: " + FormatUtils.date(((Medication) item).startDateEpochMillis);
-        if (item instanceof SymptomEntry) return FormatUtils.dateTime(((SymptomEntry) item).recordedAt);
-        if (item instanceof ReproductiveEvent) return FormatUtils.date(((ReproductiveEvent) item).startDateEpochMillis);
+        if (item instanceof VetVisit) return FormatUtils.humanDate(((VetVisit) item).visitDateEpochMillis);
+        if (item instanceof Vaccination) return "Given: " + FormatUtils.humanDate(((Vaccination) item).administeredAt);
+        if (item instanceof Medication) return "Started: " + FormatUtils.humanDate(((Medication) item).startDateEpochMillis);
+        if (item instanceof SymptomEntry) return FormatUtils.humanDateTime(((SymptomEntry) item).recordedAt);
+        if (item instanceof ReproductiveEvent) return FormatUtils.humanDate(((ReproductiveEvent) item).startDateEpochMillis);
         return "";
     }
 
     private String reminderTitle(Object item) {
-        if (item instanceof Medication) return "Medication reminder";
-        if (item instanceof Vaccination) return "Vaccination reminder";
-        return "Reminder";
-    }
-
-    private String reminderSubtitle(Object item) {
         if (item instanceof Medication) return ((Medication) item).medicationName;
         if (item instanceof Vaccination) return ((Vaccination) item).vaccineName;
-        return "";
+        return "Reminder";
     }
 
     private String reminderMeta(Object item) {
         long time = repository.reminderTime(item);
-        return time == Long.MAX_VALUE ? "No date" : FormatUtils.dateTime(time);
+        String formatted = item instanceof Vaccination ? FormatUtils.humanDate(time) : FormatUtils.humanDateTime(time);
+        if (FormatUtils.isNearMidnight(time)) formatted += "  ⚠ midnight time";
+        return formatted;
     }
 
     private long getItemTime(Object item) {
@@ -218,4 +338,16 @@ public class HealthFragment extends Fragment {
         });
         menu.show();
     }
+
+    private void styleTab(Button button, boolean active) {
+        int accent = ThemeUtils.getAccentColor(requireContext());
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(18));
+        bg.setStroke(dp(2), accent);
+        bg.setColor(active ? accent : Color.TRANSPARENT);
+        button.setBackground(bg);
+        button.setTextColor(active ? ContextCompat.getColor(requireContext(), R.color.black) : accent);
+    }
+
+    private int dp(int value) { return (int) (value * getResources().getDisplayMetrics().density + 0.5f); }
 }

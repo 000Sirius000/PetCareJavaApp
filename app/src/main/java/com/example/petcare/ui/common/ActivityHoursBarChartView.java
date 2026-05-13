@@ -24,7 +24,6 @@ public class ActivityHoursBarChartView extends View {
     private final Paint axisPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint barPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint insideTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final List<BarInfo> bars = new ArrayList<>();
 
     private List<ActivitySession> sessions = new ArrayList<>();
@@ -33,9 +32,8 @@ public class ActivityHoursBarChartView extends View {
     public ActivityHoursBarChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
         axisPaint.setStrokeWidth(3f);
-        textPaint.setTextSize(24f);
-        insideTextPaint.setTextSize(24f);
-        insideTextPaint.setFakeBoldText(true);
+        textPaint.setTextSize(22f);
+        setClickable(true);
     }
 
     public void setData(List<ActivitySession> sessions, FilterRange range) {
@@ -50,16 +48,15 @@ public class ActivityHoursBarChartView extends View {
         axisPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));
         barPaint.setColor(ThemeUtils.getAccentColor(getContext()));
         textPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_secondary));
-        insideTextPaint.setColor(ContextCompat.getColor(getContext(), R.color.black));
 
-        float left = 85f;
+        float left = 76f;
         float right = getWidth() - 20f;
-        float top = 30f;
-        float bottom = getHeight() - 60f;
+        float top = 34f;
+        float bottom = getHeight() - 58f;
 
         canvas.drawLine(left, bottom, right, bottom, axisPaint);
         canvas.drawLine(left, top, left, bottom, axisPaint);
-        canvas.drawText("Hours", 10f, top + 20f, textPaint);
+        canvas.drawText("min", 12f, top + 18f, textPaint);
 
         buildBars();
         if (bars.isEmpty()) {
@@ -68,16 +65,16 @@ public class ActivityHoursBarChartView extends View {
         }
 
         double max = 0d;
-        for (BarInfo bar : bars) max = Math.max(max, bar.hours);
+        for (BarInfo bar : bars) max = Math.max(max, bar.minutes);
         if (max < 1d) max = 1d;
 
         float slotWidth = (right - left) / bars.size();
-        float barWidth = Math.max(16f, slotWidth * 0.65f);
+        float barWidth = Math.max(8f, slotWidth * 0.58f);
 
         for (int i = 0; i < bars.size(); i++) {
             BarInfo bar = bars.get(i);
             float x = left + i * slotWidth + (slotWidth - barWidth) / 2f;
-            float height = (float) ((bar.hours / max) * (bottom - top - 10f));
+            float height = bar.minutes <= 0d ? 2f : (float) ((bar.minutes / max) * (bottom - top - 12f));
             float y = bottom - height;
 
             bar.left = x;
@@ -87,27 +84,35 @@ public class ActivityHoursBarChartView extends View {
 
             canvas.drawRect(bar.left, bar.top, bar.right, bar.bottom, barPaint);
 
-            String label = hoursText(bar.hours);
-            if (height > 42f) {
-                canvas.drawText(label, x + 6f, y + 28f, insideTextPaint);
+            if (bar.minutes > 0d) {
+                canvas.drawText(FormatUtils.number(bar.minutes), x + 2f, y - 8f, textPaint);
             }
-            canvas.drawText(label, x + 2f, y - 8f, textPaint);
-            canvas.drawText(bar.label, x - 6f, bottom + 28f, textPaint);
+            if (shouldShowXAxisLabel(i, bar.label)) {
+                canvas.drawText(bar.label, x - 6f, bottom + 28f, textPaint);
+            }
         }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() != MotionEvent.ACTION_UP) return true;
-        float x = event.getX();
-        float y = event.getY();
         for (BarInfo bar : bars) {
-            if (x >= bar.left && x <= bar.right && y >= bar.top && y <= bar.bottom) {
-                Toast.makeText(getContext(), bar.label + ": " + hoursText(bar.hours) + " h", Toast.LENGTH_SHORT).show();
+            if (event.getX() >= bar.left && event.getX() <= bar.right && event.getY() >= bar.top && event.getY() <= bar.bottom) {
+                Toast.makeText(getContext(), bar.label + ": " + FormatUtils.number(bar.minutes) + " min", Toast.LENGTH_SHORT).show();
                 return true;
             }
         }
         return true;
+    }
+
+    private boolean shouldShowXAxisLabel(int index, String label) {
+        if (range != FilterRange.MONTH) return true;
+        try {
+            int day = Integer.parseInt(label);
+            return day == 1 || day == 5 || day == 10 || day == 15 || day == 20 || day == 25 || day == 30;
+        } catch (Exception ignored) {
+            return index == 0 || index % 5 == 4;
+        }
     }
 
     private void buildBars() {
@@ -117,15 +122,10 @@ public class ActivityHoursBarChartView extends View {
         if (range == FilterRange.YEAR) {
             int year = now.get(Calendar.YEAR);
             for (int month = 0; month < 12; month++) {
-                Calendar start = Calendar.getInstance();
-                start.clear();
-                start.set(year, month, 1, 0, 0, 0);
-                Calendar end = Calendar.getInstance();
-                end.clear();
-                end.set(year, month, start.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-
+                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, 1, 0, 0, 0);
+                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, start.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
                 BarInfo info = new BarInfo();
-                info.hours = sumHours(start.getTimeInMillis(), end.getTimeInMillis());
+                info.minutes = sumMinutes(start.getTimeInMillis(), end.getTimeInMillis());
                 info.label = new java.text.DateFormatSymbols(Locale.getDefault()).getShortMonths()[month];
                 bars.add(info);
             }
@@ -137,15 +137,10 @@ public class ActivityHoursBarChartView extends View {
             int month = now.get(Calendar.MONTH);
             int days = now.getActualMaximum(Calendar.DAY_OF_MONTH);
             for (int day = 1; day <= days; day++) {
-                Calendar start = Calendar.getInstance();
-                start.clear();
-                start.set(year, month, day, 0, 0, 0);
-                Calendar end = Calendar.getInstance();
-                end.clear();
-                end.set(year, month, day, 23, 59, 59);
-
+                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, day, 0, 0, 0);
+                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, day, 23, 59, 59);
                 BarInfo info = new BarInfo();
-                info.hours = sumHours(start.getTimeInMillis(), end.getTimeInMillis());
+                info.minutes = sumMinutes(start.getTimeInMillis(), end.getTimeInMillis());
                 info.label = String.valueOf(day);
                 bars.add(info);
             }
@@ -156,46 +151,30 @@ public class ActivityHoursBarChartView extends View {
         startDay.add(Calendar.DAY_OF_YEAR, -6);
         for (int i = 0; i < 7; i++) {
             Calendar start = (Calendar) startDay.clone();
-            start.set(Calendar.HOUR_OF_DAY, 0);
-            start.set(Calendar.MINUTE, 0);
-            start.set(Calendar.SECOND, 0);
-            start.set(Calendar.MILLISECOND, 0);
-
+            start.set(Calendar.HOUR_OF_DAY, 0); start.set(Calendar.MINUTE, 0); start.set(Calendar.SECOND, 0); start.set(Calendar.MILLISECOND, 0);
             Calendar end = (Calendar) start.clone();
-            end.set(Calendar.HOUR_OF_DAY, 23);
-            end.set(Calendar.MINUTE, 59);
-            end.set(Calendar.SECOND, 59);
-
+            end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59); end.set(Calendar.SECOND, 59);
             BarInfo info = new BarInfo();
-            info.hours = sumHours(start.getTimeInMillis(), end.getTimeInMillis());
+            info.minutes = sumMinutes(start.getTimeInMillis(), end.getTimeInMillis());
             info.label = FormatUtils.dayLabel(start.getTimeInMillis());
             bars.add(info);
-
             startDay.add(Calendar.DAY_OF_YEAR, 1);
         }
     }
 
-    private double sumHours(long start, long end) {
-        double hours = 0d;
+    private double sumMinutes(long start, long end) {
+        double minutes = 0d;
         for (ActivitySession item : sessions) {
             if (item.sessionDateEpochMillis >= start && item.sessionDateEpochMillis <= end) {
-                hours += item.durationMinutes / 60d;
+                minutes += Math.max(0, item.durationMinutes);
             }
         }
-        return hours;
-    }
-
-    private String hoursText(double hours) {
-        if (hours == 0d) return "0";
-        return FormatUtils.number(hours);
+        return minutes;
     }
 
     private static class BarInfo {
         String label;
-        double hours;
-        float left;
-        float top;
-        float right;
-        float bottom;
+        double minutes;
+        float left, top, right, bottom;
     }
 }

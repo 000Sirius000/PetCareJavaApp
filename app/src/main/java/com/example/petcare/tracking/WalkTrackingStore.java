@@ -9,6 +9,7 @@ public final class WalkTrackingStore {
     private static final String PREFS = "walk_tracker_prefs";
     private static final String KEY_ACTIVE = "active";
     private static final String KEY_PET_ID = "pet_id";
+    private static final String KEY_ACTIVITY_TYPE = "activity_type";
     private static final String KEY_STARTED_AT = "started_at";
     private static final String KEY_LAST_RESUME_AT = "last_resume_at";
     private static final String KEY_ACCUMULATED_MS = "accumulated_ms";
@@ -19,14 +20,14 @@ public final class WalkTrackingStore {
     private static final String KEY_LAST_LON = "last_lon";
     private static final String KEY_LAST_LOCATION_TIME = "last_location_time";
 
-    private WalkTrackingStore() {
-    }
+    private WalkTrackingStore() { }
 
     public static State read(Context context) {
         SharedPreferences prefs = prefs(context);
         State state = new State();
         state.active = prefs.getBoolean(KEY_ACTIVE, false);
         state.petId = prefs.getLong(KEY_PET_ID, 0L);
+        state.activityType = prefs.getString(KEY_ACTIVITY_TYPE, "Walk");
         state.startedAt = prefs.getLong(KEY_STARTED_AT, 0L);
         state.lastResumeAt = prefs.getLong(KEY_LAST_RESUME_AT, 0L);
         state.accumulatedMs = prefs.getLong(KEY_ACCUMULATED_MS, 0L);
@@ -39,11 +40,12 @@ public final class WalkTrackingStore {
         return state;
     }
 
-    public static void start(Context context, long petId) {
+    public static void start(Context context, long petId, String activityType) {
         long now = System.currentTimeMillis();
         prefs(context).edit()
                 .putBoolean(KEY_ACTIVE, true)
                 .putLong(KEY_PET_ID, petId)
+                .putString(KEY_ACTIVITY_TYPE, normalizeActivityType(activityType))
                 .putLong(KEY_STARTED_AT, now)
                 .putLong(KEY_LAST_RESUME_AT, now)
                 .putLong(KEY_ACCUMULATED_MS, 0L)
@@ -54,10 +56,11 @@ public final class WalkTrackingStore {
                 .apply();
     }
 
+    public static void start(Context context, long petId) { start(context, petId, "Walk"); }
+
     public static void pause(Context context) {
         State state = read(context);
         if (!state.active || state.paused) return;
-
         long now = System.currentTimeMillis();
         long accumulated = state.accumulatedMs + Math.max(0L, now - state.lastResumeAt);
         prefs(context).edit()
@@ -71,7 +74,6 @@ public final class WalkTrackingStore {
     public static void resume(Context context) {
         State state = read(context);
         if (!state.active || !state.paused) return;
-
         long now = System.currentTimeMillis();
         prefs(context).edit()
                 .putLong(KEY_LAST_RESUME_AT, now)
@@ -98,15 +100,10 @@ public final class WalkTrackingStore {
     }
 
     public static void clearLastLocation(Context context) {
-        prefs(context).edit()
-                .putBoolean(KEY_HAS_LAST_LOCATION, false)
-                .putLong(KEY_LAST_LOCATION_TIME, 0L)
-                .apply();
+        prefs(context).edit().putBoolean(KEY_HAS_LAST_LOCATION, false).putLong(KEY_LAST_LOCATION_TIME, 0L).apply();
     }
 
-    public static void clear(Context context) {
-        prefs(context).edit().clear().apply();
-    }
+    public static void clear(Context context) { prefs(context).edit().clear().apply(); }
 
     public static String formatElapsed(long elapsedMs) {
         long totalSeconds = Math.max(0L, elapsedMs / 1000L);
@@ -120,6 +117,17 @@ public final class WalkTrackingStore {
         return String.format(Locale.getDefault(), "%.2f km", Math.max(0d, meters) / 1000d);
     }
 
+    public static boolean supportsLiveDistance(String type) { return "Walk".equalsIgnoreCase(normalizeActivityType(type)); }
+
+    public static String normalizeActivityType(String type) {
+        if (type == null) return "Walk";
+        String value = type.trim();
+        if (value.equalsIgnoreCase("Run")) return "Run";
+        if (value.equalsIgnoreCase("Play")) return "Play";
+        if (value.equalsIgnoreCase("Swim")) return "Swim";
+        return "Walk";
+    }
+
     private static SharedPreferences prefs(Context context) {
         return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
@@ -127,6 +135,7 @@ public final class WalkTrackingStore {
     public static final class State {
         public boolean active;
         public long petId;
+        public String activityType;
         public long startedAt;
         public long lastResumeAt;
         public long accumulatedMs;

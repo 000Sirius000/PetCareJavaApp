@@ -90,7 +90,7 @@ public class ActivityLogActivity extends AppCompatActivity {
     }
 
     private String subtitle(ActivitySession item) {
-        return "Active date: " + FormatUtils.dateTime(item.sessionDateEpochMillis)
+        return "Active date: " + FormatUtils.humanDateTime(item.sessionDateEpochMillis)
                 + "\nNotes: " + FormatUtils.nullable(item.notes);
     }
 

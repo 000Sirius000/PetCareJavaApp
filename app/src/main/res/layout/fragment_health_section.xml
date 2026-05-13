@@ -6,16 +6,73 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView android:id="@+id/section_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Health" android:textColor="@color/pet_text_primary" android:textSize="26sp" android:textStyle="bold" />
-    <TextView android:id="@+id/section_subtitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Reminders are separated from completed health records" android:textColor="@color/pet_text_secondary" android:textSize="14sp" />
+    <TextView
+        android:id="@+id/section_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Health"
+        android:textColor="@color/pet_text_primary"
+        android:textSize="26sp"
+        android:textStyle="bold" />
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Upcoming reminders" android:textColor="@color/pet_text_primary" android:textSize="18sp" android:textStyle="bold" />
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/reminders_recycler" android:layout_width="match_parent" android:layout_height="140dp" android:layout_marginTop="8dp" />
-    <TextView android:id="@+id/reminders_empty" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="No upcoming health reminders" android:textColor="@color/pet_text_secondary" android:visibility="gone" />
+    <TextView
+        android:id="@+id/section_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Switch between upcoming reminders and completed log"
+        android:textColor="@color/pet_text_secondary"
+        android:textSize="14sp" />
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Completed / recorded entries" android:textColor="@color/pet_text_primary" android:textSize="18sp" android:textStyle="bold" />
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/completed_recycler" android:layout_width="match_parent" android:layout_height="0dp" android:layout_marginTop="8dp" android:layout_weight="1" />
-    <TextView android:id="@+id/completed_empty" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="No completed health entries yet" android:textColor="@color/pet_text_secondary" android:visibility="gone" />
+    <LinearLayout
+        android:id="@+id/health_tab_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
 
-    <Button android:id="@+id/section_action_button" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Add health entry" />
+        <Button
+            android:id="@+id/button_reminders_tab"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Reminders" />
+
+        <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+        <Button
+            android:id="@+id/button_log_tab"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Log" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/health_list_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/health_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No health entries yet"
+        android:textColor="@color/pet_text_secondary"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/section_action_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Add health entry" />
 </LinearLayout>

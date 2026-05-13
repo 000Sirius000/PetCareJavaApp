@@ -72,6 +72,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         setupThemeSpinner(prefs);
         setupPetIconSpinner(prefs);
+        setupTrackingControls(prefs);
 
         binding.buttonExportJson.setOnClickListener(v -> exportLauncher.launch("petcare_backup.json"));
         binding.buttonImportJson.setOnClickListener(v -> confirmImport());
@@ -182,6 +183,12 @@ public class SettingsActivity extends AppCompatActivity {
         if (grace != null) editor.putInt("grace_hours", grace);
         if (vax != null) editor.putInt("vax_days", vax);
 
+        editor
+                .putBoolean("tracking_enabled", binding.checkTrackingEnabled.isChecked())
+                .putString("tracking_button_1", selectedSpinnerValue(binding.spinnerTracking1))
+                .putString("tracking_button_2", selectedSpinnerValue(binding.spinnerTracking2))
+                .putString("tracking_button_3", selectedSpinnerValue(binding.spinnerTracking3));
+
         editor.apply();
     }
 
@@ -270,6 +277,66 @@ public class SettingsActivity extends AppCompatActivity {
             default:
                 return "dog_cat";
         }
+    }
+
+
+    private void setupTrackingControls(SharedPreferences prefs) {
+        ArrayAdapter<CharSequence> trackingAdapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.tracking_activity_options,
+                android.R.layout.simple_spinner_item
+        );
+        trackingAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.spinnerTracking1.setAdapter(trackingAdapter);
+        binding.spinnerTracking2.setAdapter(trackingAdapter);
+        binding.spinnerTracking3.setAdapter(trackingAdapter);
+
+        binding.checkTrackingEnabled.setChecked(prefs.getBoolean("tracking_enabled", true));
+        binding.spinnerTracking1.setSelection(findTrackingPosition(trackingAdapter, prefs.getString("tracking_button_1", "Walk")), false);
+        binding.spinnerTracking2.setSelection(findTrackingPosition(trackingAdapter, prefs.getString("tracking_button_2", "Run")), false);
+        binding.spinnerTracking3.setSelection(findTrackingPosition(trackingAdapter, prefs.getString("tracking_button_3", "Play")), false);
+
+        AdapterView.OnItemSelectedListener trackingListener = new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, android.view.View view, int position, long id) {
+                if (listenersReady) savePrefs();
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        };
+        binding.spinnerTracking1.setOnItemSelectedListener(trackingListener);
+        binding.spinnerTracking2.setOnItemSelectedListener(trackingListener);
+        binding.spinnerTracking3.setOnItemSelectedListener(trackingListener);
+        binding.checkTrackingEnabled.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            binding.spinnerTracking1.setEnabled(isChecked);
+            binding.spinnerTracking2.setEnabled(isChecked);
+            binding.spinnerTracking3.setEnabled(isChecked);
+            if (listenersReady) savePrefs();
+        });
+        boolean enabled = binding.checkTrackingEnabled.isChecked();
+        binding.spinnerTracking1.setEnabled(enabled);
+        binding.spinnerTracking2.setEnabled(enabled);
+        binding.spinnerTracking3.setEnabled(enabled);
+    }
+
+    private int findTrackingPosition(ArrayAdapter<CharSequence> adapter, String value) {
+        String normalized = normalizeTrackingValue(value);
+        for (int i = 0; i < adapter.getCount(); i++) {
+            if (normalized.equals(normalizeTrackingValue(String.valueOf(adapter.getItem(i))))) return i;
+        }
+        return 0;
+    }
+
+    private String selectedSpinnerValue(android.widget.Spinner spinner) {
+        Object value = spinner.getSelectedItem();
+        return normalizeTrackingValue(value == null ? "Walk" : String.valueOf(value));
+    }
+
+    private String normalizeTrackingValue(String value) {
+        if (value == null) return "Walk";
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("run")) return "Run";
+        if (normalized.equals("play")) return "Play";
+        if (normalized.equals("swim")) return "Swim";
+        return "Walk";
     }
 
     private void confirmImport() {

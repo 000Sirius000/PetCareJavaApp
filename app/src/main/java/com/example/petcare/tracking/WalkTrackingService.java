@@ -32,6 +32,7 @@ public class WalkTrackingService extends Service {
     public static final String ACTION_RESUME = "com.example.petcare.action.WALK_RESUME";
     public static final String ACTION_STOP = "com.example.petcare.action.WALK_STOP";
     public static final String EXTRA_PET_ID = "extra_pet_id";
+    public static final String EXTRA_ACTIVITY_TYPE = "extra_activity_type";
 
     private static final String CHANNEL_ID = "petcare_walk_tracking";
     private static final int NOTIFICATION_ID = 42042;
@@ -77,7 +78,7 @@ public class WalkTrackingService extends Service {
 
         switch (action) {
             case ACTION_START:
-                handleStart(intent.getLongExtra(EXTRA_PET_ID, 0L));
+                handleStart(intent.getLongExtra(EXTRA_PET_ID, 0L), intent.getStringExtra(EXTRA_ACTIVITY_TYPE));
                 return START_STICKY;
             case ACTION_PAUSE:
                 handlePause();
@@ -93,7 +94,7 @@ public class WalkTrackingService extends Service {
         }
     }
 
-    private void handleStart(long petId) {
+    private void handleStart(long petId, String requestedActivityType) {
         if (petId <= 0L) {
             stopSelf();
             return;
@@ -108,7 +109,7 @@ public class WalkTrackingService extends Service {
 
         if (state.active) return;
 
-        WalkTrackingStore.start(this, petId);
+        WalkTrackingStore.start(this, petId, requestedActivityType);
         WalkTrackingStore.clearLastLocation(this);
         WalkTrackingStore.State newState = WalkTrackingStore.read(this);
         startForegroundInternal(newState);
@@ -143,12 +144,17 @@ public class WalkTrackingService extends Service {
 
             ActivitySession session = new ActivitySession();
             session.petId = state.petId;
-            session.activityType = "Walk";
+            session.activityType = WalkTrackingStore.normalizeActivityType(state.activityType);
             session.durationMinutes = Math.max(1, (int) Math.round(elapsedMs / 60000d));
-            session.distance = state.distanceMeters > 0d ? state.distanceMeters / 1000d : null;
-            session.distanceUnit = state.distanceMeters > 0d ? "km" : null;
+            if (WalkTrackingStore.supportsLiveDistance(state.activityType) && state.distanceMeters > 0d) {
+                session.distance = state.distanceMeters / 1000d;
+                session.distanceUnit = "km";
+            } else {
+                session.distance = null;
+                session.distanceUnit = null;
+            }
             session.sessionDateEpochMillis = state.startedAt > 0L ? state.startedAt : System.currentTimeMillis();
-            session.notes = "Tracked live walk";
+            session.notes = "Tracked live " + WalkTrackingStore.normalizeActivityType(state.activityType).toLowerCase(java.util.Locale.ROOT);
             new PetRepository(this).getDb().activitySessionDao().insert(session);
         }
 
@@ -174,8 +180,12 @@ public class WalkTrackingService extends Service {
     private android.app.Notification buildNotification(WalkTrackingStore.State state) {
         Pet pet = new PetRepository(this).getPet(state.petId);
         String petName = pet == null || pet.name == null || pet.name.trim().isEmpty() ? "Pet" : pet.name.trim();
-        String title = state.paused ? "Walk paused" : "Tracking walk";
-        String text = petName + " • " + WalkTrackingStore.formatElapsed(state.elapsedNow()) + " • " + WalkTrackingStore.formatDistanceKm(state.distanceMeters);
+        String activityName = WalkTrackingStore.normalizeActivityType(state.activityType);
+        String title = state.paused ? activityName + " paused" : "Tracking " + activityName.toLowerCase(java.util.Locale.ROOT);
+        String text = petName + " • " + WalkTrackingStore.formatElapsed(state.elapsedNow());
+        if (WalkTrackingStore.supportsLiveDistance(activityName)) {
+            text += " • " + WalkTrackingStore.formatDistanceKm(state.distanceMeters);
+        }
 
         Intent openIntent = new Intent(this, PetDetailActivity.class);
         openIntent.putExtra(PetDetailActivity.EXTRA_PET_ID, state.petId);
@@ -251,6 +261,7 @@ public class WalkTrackingService extends Service {
 
         WalkTrackingStore.State state = WalkTrackingStore.read(this);
         if (!state.active || state.paused) return;
+        if (!WalkTrackingStore.supportsLiveDistance(state.activityType)) return;
 
         if (state.hasLastLocation) {
             float[] result = new float[1];

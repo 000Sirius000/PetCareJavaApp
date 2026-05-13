@@ -253,7 +253,8 @@ public class PetRepository {
         for (Medication medication : db.medicationDao().getForPet(petId)) {
             if (!medication.archived) count++;
         }
-        long leadTime = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000);
+        int leadDays = prefs().getInt("vax_days", 30);
+        long leadTime = System.currentTimeMillis() + (leadDays * 24L * 60 * 60 * 1000);
         for (Vaccination vaccination : db.vaccinationDao().getForPet(petId)) {
             if (vaccination.nextDueAt != null && vaccination.nextDueAt <= leadTime) count++;
         }
@@ -313,7 +314,8 @@ public class PetRepository {
             }
         }
 
-        long leadTime = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000);
+        int leadDays = prefs().getInt("vax_days", 30);
+        long leadTime = System.currentTimeMillis() + (leadDays * 24L * 60 * 60 * 1000);
         for (Vaccination vaccination : getVaccinations(petId)) {
             if (vaccination.nextDueAt != null && vaccination.nextDueAt <= leadTime) {
                 items.add(vaccination);

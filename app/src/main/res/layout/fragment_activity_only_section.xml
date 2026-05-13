@@ -29,30 +29,116 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:orientation="horizontal">
-        <Button android:id="@+id/button_week" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Week" />
+
+        <Button
+            android:id="@+id/button_week"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Week" />
+
         <Space android:layout_width="8dp" android:layout_height="1dp" />
-        <Button android:id="@+id/button_month" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Month" />
+
+        <Button
+            android:id="@+id/button_month"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Month" />
+
         <Space android:layout_width="8dp" android:layout_height="1dp" />
-        <Button android:id="@+id/button_year" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Year" />
+
+        <Button
+            android:id="@+id/button_year"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Year" />
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Active time" android:textColor="@color/pet_text_primary" android:textStyle="bold" />
-            <com.example.petcare.ui.common.ActivityHoursBarChartView android:id="@+id/activity_chart" android:layout_width="match_parent" android:layout_height="220dp" android:layout_marginTop="6dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Distance" android:textColor="@color/pet_text_primary" android:textStyle="bold" />
-            <com.example.petcare.ui.common.ActivityDistanceBarChartView android:id="@+id/activity_distance_chart" android:layout_width="match_parent" android:layout_height="220dp" android:layout_marginTop="6dp" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Active time"
+                    android:textColor="@color/pet_text_primary"
+                    android:textStyle="bold" />
 
-            <Button android:id="@+id/button_open_activity_log" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Open detailed activity log" />
-            <Button android:id="@+id/button_add_activity" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Add manual activity" />
+                <TextView
+                    android:id="@+id/activity_time_stats"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Total 0 min · Avg 0/day"
+                    android:textColor="@color/pet_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <com.example.petcare.ui.common.ActivityHoursBarChartView
+                android:id="@+id/activity_chart"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:layout_marginTop="6dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Distance"
+                    android:textColor="@color/pet_text_primary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/activity_distance_stats"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Total 0 km · Avg 0/day"
+                    android:textColor="@color/pet_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <com.example.petcare.ui.common.ActivityDistanceBarChartView
+                android:id="@+id/activity_distance_chart"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:layout_marginTop="6dp" />
+
+            <Button
+                android:id="@+id/button_open_activity_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="See detailed activity" />
+
+            <Button
+                android:id="@+id/button_add_activity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Add manual activity" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>
