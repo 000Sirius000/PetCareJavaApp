@@ -61,7 +61,8 @@ public class FeedingFragment extends Fragment {
         adapter = new SimpleRowAdapter(new SimpleRowAdapter.RowMapper<FeedingSchedule>() {
             @Override public String title(FeedingSchedule item) { return dotFor(item.foodType) + " " + item.mealName; }
             @Override public String subtitle(FeedingSchedule item) {
-                return String.format(Locale.getDefault(), "%02d:%02d · %s", item.hourOfDay, item.minute, normalizeFoodType(item.foodType));
+                String date = item.createdAtEpochMillis > 0L ? FormatUtils.humanDate(item.createdAtEpochMillis) : "No date";
+                return String.format(Locale.getDefault(), "%s · %02d:%02d · %s", date, item.hourOfDay, item.minute, normalizeFoodType(item.foodType));
             }
             @Override public String meta(FeedingSchedule item) { return "Portion: " + FormatUtils.number(FormatUtils.parseLeadingNumber(item.portion)) + " g"; }
         });

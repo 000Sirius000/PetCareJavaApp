@@ -459,11 +459,34 @@ public class PetRepository {
         db.medicationLogDao().insert(log);
     }
 
+
+    public void completeReminder(Object item) {
+        if (item instanceof Medication) {
+            Medication medication = (Medication) item;
+            logMedication(medication.petId, medication.id, false);
+            int intervalDays = Math.max(1, medication.frequencyIntervalDays);
+            long next = System.currentTimeMillis() + intervalDays * 24L * 60L * 60L * 1000L;
+            if (medication.endDateEpochMillis > 0L && next > medication.endDateEpochMillis) {
+                medication.archived = true;
+                medication.nextReminderAt = 0L;
+            } else {
+                medication.nextReminderAt = next;
+            }
+            db.medicationDao().update(medication);
+        } else if (item instanceof Vaccination) {
+            Vaccination vaccination = (Vaccination) item;
+            vaccination.administeredAt = System.currentTimeMillis();
+            vaccination.nextDueAt = null;
+            db.vaccinationDao().update(vaccination);
+        }
+    }
+
     public List<Object> getHealthTimeline(long petId) {
         List<Object> items = new ArrayList<>();
         items.addAll(getVetVisits(petId));
         items.addAll(getVaccinations(petId));
         items.addAll(getMedications(petId));
+        items.addAll(getMedicationLogs(petId));
         items.addAll(getSymptomEntries(petId));
         items.addAll(getReproductiveEvents(petId));
         return items;

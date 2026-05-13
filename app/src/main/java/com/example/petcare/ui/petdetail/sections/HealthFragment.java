@@ -26,6 +26,7 @@ import androidx.fragment.app.Fragment;
 import com.example.petcare.R;
 import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.Medication;
+import com.example.petcare.data.entities.MedicationLog;
 import com.example.petcare.data.entities.Pet;
 import com.example.petcare.data.entities.ReproductiveEvent;
 import com.example.petcare.data.entities.SymptomEntry;
@@ -215,19 +216,8 @@ public class HealthFragment extends Fragment {
     }
 
     private void completeReminder(Object item) {
-        if (item instanceof Medication) {
-            Medication medication = (Medication) item;
-            repository.logMedication(petId, medication.id, false);
-            medication.nextReminderAt = System.currentTimeMillis() + Math.max(1, medication.frequencyIntervalDays) * 24L * 60 * 60 * 1000;
-            repository.getDb().medicationDao().update(medication);
-            Toast.makeText(requireContext(), "Medication completed", Toast.LENGTH_SHORT).show();
-        } else if (item instanceof Vaccination) {
-            Vaccination vaccination = (Vaccination) item;
-            vaccination.administeredAt = System.currentTimeMillis();
-            vaccination.nextDueAt = null;
-            repository.getDb().vaccinationDao().update(vaccination);
-            Toast.makeText(requireContext(), "Vaccination completed", Toast.LENGTH_SHORT).show();
-        }
+        repository.completeReminder(item);
+        Toast.makeText(requireContext(), "Reminder completed and added to the log", Toast.LENGTH_SHORT).show();
         reload();
     }
 
@@ -245,6 +235,11 @@ public class HealthFragment extends Fragment {
             intent = new Intent(requireContext(), MedicationFormActivity.class);
             intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
             intent.putExtra(MedicationFormActivity.EXTRA_MEDICATION_ID, ((Medication) item).id);
+        } else if (item instanceof MedicationLog) {
+            MedicationLog log = (MedicationLog) item;
+            intent = new Intent(requireContext(), MedicationFormActivity.class);
+            intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
+            intent.putExtra(MedicationFormActivity.EXTRA_MEDICATION_ID, log.medicationId);
         } else if (item instanceof SymptomEntry) {
             intent = new Intent(requireContext(), SymptomEntryFormActivity.class);
             intent.putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);
@@ -261,6 +256,7 @@ public class HealthFragment extends Fragment {
         if (item instanceof VetVisit) return "Vet visit";
         if (item instanceof Vaccination) return "Vaccination";
         if (item instanceof Medication) return "Medication record";
+        if (item instanceof MedicationLog) return ((MedicationLog) item).missed ? "Medication missed" : "Medication completed";
         if (item instanceof SymptomEntry) return "Symptom";
         if (item instanceof ReproductiveEvent) return "Reproductive";
         return "Entry";
@@ -276,6 +272,13 @@ public class HealthFragment extends Fragment {
             Medication medication = (Medication) item;
             return FormatUtils.joinNonEmpty(" · ", medication.medicationName, FormatUtils.joinNonEmpty(" ", medication.dosage, medication.dosageUnit));
         }
+        if (item instanceof MedicationLog) {
+            MedicationLog log = (MedicationLog) item;
+            Medication medication = repository.getDb().medicationDao().getById(log.medicationId);
+            String name = medication == null ? "Medication" : medication.medicationName;
+            String dose = medication == null ? "" : FormatUtils.joinNonEmpty(" ", medication.dosage, medication.dosageUnit);
+            return FormatUtils.joinNonEmpty(" · ", name, dose);
+        }
         if (item instanceof SymptomEntry) {
             SymptomEntry entry = (SymptomEntry) item;
             return FormatUtils.joinNonEmpty(" · ", entry.tagsCsv, entry.severity);
@@ -288,6 +291,7 @@ public class HealthFragment extends Fragment {
         if (item instanceof VetVisit) return FormatUtils.humanDate(((VetVisit) item).visitDateEpochMillis);
         if (item instanceof Vaccination) return "Given: " + FormatUtils.humanDate(((Vaccination) item).administeredAt);
         if (item instanceof Medication) return "Started: " + FormatUtils.humanDate(((Medication) item).startDateEpochMillis);
+        if (item instanceof MedicationLog) return "Completed: " + FormatUtils.humanDateTime(((MedicationLog) item).administeredAt);
         if (item instanceof SymptomEntry) return FormatUtils.humanDateTime(((SymptomEntry) item).recordedAt);
         if (item instanceof ReproductiveEvent) return FormatUtils.humanDate(((ReproductiveEvent) item).startDateEpochMillis);
         return "";
@@ -310,6 +314,7 @@ public class HealthFragment extends Fragment {
         if (item instanceof VetVisit) return ((VetVisit) item).visitDateEpochMillis;
         if (item instanceof Vaccination) return ((Vaccination) item).administeredAt;
         if (item instanceof Medication) return ((Medication) item).startDateEpochMillis;
+        if (item instanceof MedicationLog) return ((MedicationLog) item).administeredAt;
         if (item instanceof SymptomEntry) return ((SymptomEntry) item).recordedAt;
         if (item instanceof ReproductiveEvent) return ((ReproductiveEvent) item).startDateEpochMillis;
         return 0L;

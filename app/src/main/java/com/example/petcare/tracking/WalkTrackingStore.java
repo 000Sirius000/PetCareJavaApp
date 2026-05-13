@@ -117,7 +117,10 @@ public final class WalkTrackingStore {
         return String.format(Locale.getDefault(), "%.2f km", Math.max(0d, meters) / 1000d);
     }
 
-    public static boolean supportsLiveDistance(String type) { return "Walk".equalsIgnoreCase(normalizeActivityType(type)); }
+    public static boolean supportsLiveDistance(String type) {
+        String normalized = normalizeActivityType(type);
+        return "Walk".equalsIgnoreCase(normalized) || "Run".equalsIgnoreCase(normalized);
+    }
 
     public static String normalizeActivityType(String type) {
         if (type == null) return "Walk";

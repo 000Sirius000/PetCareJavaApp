@@ -11,8 +11,12 @@ import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.FeedingSchedule;
 import com.example.petcare.databinding.ActivityFeedingScheduleFormBinding;
 import com.example.petcare.reminders.ReminderScheduler;
+import com.example.petcare.util.FormatUtils;
 import com.example.petcare.util.ThemeUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import java.util.Calendar;
+import java.util.Locale;
 
 public class FeedingScheduleFormActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
@@ -39,11 +43,18 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         binding.inputFoodType.setClickable(true);
         binding.inputFoodType.setOnClickListener(v -> chooseFoodType());
 
+        binding.inputDate.setKeyListener(null);
+        binding.inputDate.setFocusable(false);
+        binding.inputDate.setClickable(true);
+        binding.inputDate.setOnClickListener(v -> showDatePicker());
+
         long id = getIntent().getLongExtra(EXTRA_SCHEDULE_ID, 0L);
         if (id > 0L) {
             editing = repository.getDb().feedingScheduleDao().getById(id);
             if (editing != null) populate();
         } else {
+            long now = System.currentTimeMillis();
+            setDateTag(now);
             binding.inputTime.setTag(new int[]{8, 0});
             binding.inputTime.setText("08:00");
             binding.inputFoodType.setText("Dry food");
@@ -55,12 +66,14 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
     }
 
     private void populate() {
-        binding.toolbar.setTitle("Edit feeding schedule");
+        binding.toolbar.setTitle("Edit feeding");
         binding.inputMealName.setText(editing.mealName);
         binding.inputFoodType.setText(normalizeFoodType(editing.foodType));
         binding.inputPortion.setText(editing.portion);
+        long dateTime = editing.createdAtEpochMillis > 0L ? editing.createdAtEpochMillis : System.currentTimeMillis();
+        setDateTag(dateTime);
         binding.inputTime.setTag(new int[]{editing.hourOfDay, editing.minute});
-        binding.inputTime.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", editing.hourOfDay, editing.minute));
+        binding.inputTime.setText(String.format(Locale.getDefault(), "%02d:%02d", editing.hourOfDay, editing.minute));
         binding.buttonDelete.setVisibility(android.view.View.VISIBLE);
     }
 
@@ -79,11 +92,28 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(readDateTag());
+        new android.app.DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    Calendar selected = Calendar.getInstance();
+                    selected.set(year, month, dayOfMonth, 0, 0, 0);
+                    selected.set(Calendar.MILLISECOND, 0);
+                    setDateTag(selected.getTimeInMillis());
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+        ).show();
+    }
+
     private void showTimePicker() {
         int[] time = readTimeTag();
         new android.app.TimePickerDialog(this, (view, hourOfDay, minute) -> {
             binding.inputTime.setTag(new int[]{hourOfDay, minute});
-            binding.inputTime.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
+            binding.inputTime.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
         }, time[0], time[1], true).show();
     }
 
@@ -94,10 +124,11 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         schedule.foodType = normalizeFoodType(text(binding.inputFoodType));
         schedule.portion = text(binding.inputPortion);
         schedule.portionUnit = "g";
+
         int[] time = readTimeTag();
         schedule.hourOfDay = time[0];
         schedule.minute = time[1];
-        if (schedule.createdAtEpochMillis <= 0L) schedule.createdAtEpochMillis = System.currentTimeMillis();
+        schedule.createdAtEpochMillis = combineDateAndTime(readDateTag(), time);
 
         if (schedule.mealName.isEmpty()) { toast("Meal name is required"); return; }
         if (schedule.portion.isEmpty()) { toast("Portion is required"); return; }
@@ -110,6 +141,26 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         ReminderScheduler.cancelFeeding(this, schedule.id);
         setResult(RESULT_OK, new Intent());
         finish();
+    }
+
+    private long combineDateAndTime(long dateMillis, int[] time) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(dateMillis > 0L ? dateMillis : System.currentTimeMillis());
+        calendar.set(Calendar.HOUR_OF_DAY, time[0]);
+        calendar.set(Calendar.MINUTE, time[1]);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTimeInMillis();
+    }
+
+    private void setDateTag(long millis) {
+        binding.inputDate.setTag(millis);
+        binding.inputDate.setText(FormatUtils.humanDate(millis));
+    }
+
+    private long readDateTag() {
+        Object tag = binding.inputDate.getTag();
+        return tag instanceof Long ? (Long) tag : System.currentTimeMillis();
     }
 
     private String normalizeFoodType(String value) {

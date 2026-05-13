@@ -32,6 +32,7 @@ import com.example.petcare.databinding.FragmentDashboardBinding;
 import com.example.petcare.tracking.WalkTrackingService;
 import com.example.petcare.tracking.WalkTrackingStore;
 import com.example.petcare.ui.petdetail.PetDetailActivity;
+import com.example.petcare.util.AgeUtils;
 import com.example.petcare.util.FormatUtils;
 import com.example.petcare.util.ThemeUtils;
 
@@ -128,7 +129,7 @@ public class DashboardFragment extends Fragment {
         binding.dashboardContent.setVisibility(View.VISIBLE);
         binding.dashboardEmpty.setVisibility(View.GONE);
         binding.petName.setText(selectedPet.name);
-        binding.petSubtitle.setText(selectedPet.species + " • " + nullable(selectedPet.breed));
+        binding.petSubtitle.setText(dashboardPetSubtitle(selectedPet));
         binding.petWeight.setText(repository.getLastWeightSummary(selectedPet));
         binding.weightWarning.setVisibility(repository.isLatestWeightOutOfRange(selectedPet) ? View.VISIBLE : View.GONE);
 
@@ -216,19 +217,8 @@ public class DashboardFragment extends Fragment {
     }
 
     private void completeReminder(Object item) {
-        if (item instanceof Medication) {
-            Medication medication = (Medication) item;
-            repository.logMedication(selectedPet.id, medication.id, false);
-            medication.nextReminderAt = System.currentTimeMillis() + Math.max(1, medication.frequencyIntervalDays) * 24L * 60 * 60 * 1000;
-            repository.getDb().medicationDao().update(medication);
-            toast("Medication completed");
-        } else if (item instanceof Vaccination) {
-            Vaccination vaccination = (Vaccination) item;
-            vaccination.administeredAt = System.currentTimeMillis();
-            vaccination.nextDueAt = null;
-            repository.getDb().vaccinationDao().update(vaccination);
-            toast("Vaccination completed");
-        }
+        repository.completeReminder(item);
+        toast("Reminder completed and added to the health log");
         reload();
     }
 
@@ -317,7 +307,7 @@ public class DashboardFragment extends Fragment {
         boolean granted = false;
         for (Boolean value : result.values()) granted |= Boolean.TRUE.equals(value);
         if (granted) startTrackerService();
-        else toast("Location permission is needed for live walk tracking.");
+        else toast("Location permission is needed for live distance tracking.");
     }
 
     private void startTrackerService() {
@@ -358,6 +348,35 @@ public class DashboardFragment extends Fragment {
     private boolean hasLocationPermission() {
         return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+
+    private String dashboardPetSubtitle(Pet pet) {
+        if (pet == null) return "Pet";
+        String species = pet.species == null || pet.species.trim().isEmpty() ? "Pet" : pet.species.trim();
+        String breed = pet.breed == null || pet.breed.trim().isEmpty() ? "Unknown breed" : pet.breed.trim();
+        String age = readableDashboardAge(pet);
+        return species + " • " + breed + " • " + age;
+    }
+
+    private String readableDashboardAge(Pet pet) {
+        String full = AgeUtils.fullAge(pet);
+        if (full == null || full.trim().isEmpty() || full.startsWith("Age unknown") || full.startsWith("Date of birth")) {
+            return "Age unknown";
+        }
+        full = full.replace(" old", "");
+        String[] parts = full.split(",");
+        StringBuilder result = new StringBuilder();
+        int added = 0;
+        for (String raw : parts) {
+            String part = raw.trim();
+            if (part.contains("day")) continue;
+            if (result.length() > 0) result.append(' ');
+            result.append(part);
+            added++;
+            if (added == 2) break;
+        }
+        return result.length() == 0 ? full.replace(",", "") : result.toString();
     }
 
     private String nullable(String value) { return value == null || value.trim().isEmpty() ? "Unknown breed" : value.trim(); }
