@@ -1,5 +1,7 @@
 package com.example.petcare.ui.forms;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
@@ -16,21 +18,28 @@ import com.example.petcare.util.ThemeUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.Calendar;
-import java.util.Locale;
 
 public class FeedingScheduleFormActivity extends AppCompatActivity {
     public static final String EXTRA_PET_ID = "extra_pet_id";
     public static final String EXTRA_SCHEDULE_ID = "extra_schedule_id";
+
     private static final String[] FOOD_TYPES = {"Natural", "Dry food", "Wet food (canned)"};
 
     private ActivityFeedingScheduleFormBinding binding;
     private PetRepository repository;
     private FeedingSchedule editing;
 
+    /**
+     * Works the same way as manual Activity entry:
+     * one field opens DatePicker first, then TimePicker, and stores one combined timestamp.
+     */
+    private long selectedDateTime = System.currentTimeMillis();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         ThemeUtils.applyActivityTheme(this);
         super.onCreate(savedInstanceState);
+
         binding = ActivityFeedingScheduleFormBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         repository = new PetRepository(this);
@@ -43,24 +52,24 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         binding.inputFoodType.setClickable(true);
         binding.inputFoodType.setOnClickListener(v -> chooseFoodType());
 
-        binding.inputDate.setKeyListener(null);
-        binding.inputDate.setFocusable(false);
-        binding.inputDate.setClickable(true);
-        binding.inputDate.setOnClickListener(v -> showDatePicker());
+        binding.inputDateTime.setKeyListener(null);
+        binding.inputDateTime.setFocusable(false);
+        binding.inputDateTime.setClickable(true);
+        binding.inputDateTime.setOnClickListener(v -> showDatePicker());
 
         long id = getIntent().getLongExtra(EXTRA_SCHEDULE_ID, 0L);
         if (id > 0L) {
             editing = repository.getDb().feedingScheduleDao().getById(id);
-            if (editing != null) populate();
+            if (editing != null) {
+                populate();
+            } else {
+                updateDateTimeText();
+            }
         } else {
-            long now = System.currentTimeMillis();
-            setDateTag(now);
-            binding.inputTime.setTag(new int[]{8, 0});
-            binding.inputTime.setText("08:00");
             binding.inputFoodType.setText("Dry food");
+            updateDateTimeText();
         }
 
-        binding.inputTime.setOnClickListener(v -> showTimePicker());
         binding.buttonSave.setOnClickListener(v -> save());
         binding.buttonDelete.setOnClickListener(v -> confirmDelete());
     }
@@ -70,19 +79,34 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         binding.inputMealName.setText(editing.mealName);
         binding.inputFoodType.setText(normalizeFoodType(editing.foodType));
         binding.inputPortion.setText(editing.portion);
-        long dateTime = editing.createdAtEpochMillis > 0L ? editing.createdAtEpochMillis : System.currentTimeMillis();
-        setDateTag(dateTime);
-        binding.inputTime.setTag(new int[]{editing.hourOfDay, editing.minute});
-        binding.inputTime.setText(String.format(Locale.getDefault(), "%02d:%02d", editing.hourOfDay, editing.minute));
+
+        selectedDateTime = editing.createdAtEpochMillis > 0L
+                ? editing.createdAtEpochMillis
+                : combineStoredDateAndTime(editing.hourOfDay, editing.minute);
+
+        updateDateTimeText();
         binding.buttonDelete.setVisibility(android.view.View.VISIBLE);
+    }
+
+    private long combineStoredDateAndTime(int hourOfDay, int minute) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTimeInMillis();
     }
 
     private void chooseFoodType() {
         int checked = 1;
         String current = text(binding.inputFoodType);
         for (int i = 0; i < FOOD_TYPES.length; i++) {
-            if (FOOD_TYPES[i].equalsIgnoreCase(current)) checked = i;
+            if (FOOD_TYPES[i].equalsIgnoreCase(current)) {
+                checked = i;
+                break;
+            }
         }
+
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Food type")
                 .setSingleChoiceItems(FOOD_TYPES, checked, (dialog, which) -> {
@@ -93,28 +117,50 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
     }
 
     private void showDatePicker() {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(readDateTag());
-        new android.app.DatePickerDialog(
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(selectedDateTime);
+
+        new DatePickerDialog(
                 this,
                 (view, year, month, dayOfMonth) -> {
-                    Calendar selected = Calendar.getInstance();
-                    selected.set(year, month, dayOfMonth, 0, 0, 0);
-                    selected.set(Calendar.MILLISECOND, 0);
-                    setDateTag(selected.getTimeInMillis());
+                    Calendar picked = Calendar.getInstance();
+                    picked.setTimeInMillis(selectedDateTime);
+                    picked.set(Calendar.YEAR, year);
+                    picked.set(Calendar.MONTH, month);
+                    picked.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    selectedDateTime = picked.getTimeInMillis();
+                    showTimePicker();
                 },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
+                c.get(Calendar.YEAR),
+                c.get(Calendar.MONTH),
+                c.get(Calendar.DAY_OF_MONTH)
         ).show();
     }
 
     private void showTimePicker() {
-        int[] time = readTimeTag();
-        new android.app.TimePickerDialog(this, (view, hourOfDay, minute) -> {
-            binding.inputTime.setTag(new int[]{hourOfDay, minute});
-            binding.inputTime.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
-        }, time[0], time[1], true).show();
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(selectedDateTime);
+
+        new TimePickerDialog(
+                this,
+                (view, hourOfDay, minute) -> {
+                    Calendar picked = Calendar.getInstance();
+                    picked.setTimeInMillis(selectedDateTime);
+                    picked.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    picked.set(Calendar.MINUTE, minute);
+                    picked.set(Calendar.SECOND, 0);
+                    picked.set(Calendar.MILLISECOND, 0);
+                    selectedDateTime = picked.getTimeInMillis();
+                    updateDateTimeText();
+                },
+                c.get(Calendar.HOUR_OF_DAY),
+                c.get(Calendar.MINUTE),
+                true
+        ).show();
+    }
+
+    private void updateDateTimeText() {
+        binding.inputDateTime.setText(FormatUtils.dateTime(selectedDateTime));
     }
 
     private void save() {
@@ -125,52 +171,52 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
         schedule.portion = text(binding.inputPortion);
         schedule.portionUnit = "g";
 
-        int[] time = readTimeTag();
-        schedule.hourOfDay = time[0];
-        schedule.minute = time[1];
-        schedule.createdAtEpochMillis = combineDateAndTime(readDateTag(), time);
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(selectedDateTime);
+        schedule.hourOfDay = c.get(Calendar.HOUR_OF_DAY);
+        schedule.minute = c.get(Calendar.MINUTE);
+        schedule.createdAtEpochMillis = selectedDateTime;
 
-        if (schedule.mealName.isEmpty()) { toast("Meal name is required"); return; }
-        if (schedule.portion.isEmpty()) { toast("Portion is required"); return; }
+        if (schedule.mealName.isEmpty()) {
+            toast("Meal name is required");
+            return;
+        }
+        if (schedule.portion.isEmpty()) {
+            toast("Portion is required");
+            return;
+        }
 
-        if (schedule.id == 0L) schedule.id = repository.getDb().feedingScheduleDao().insert(schedule);
-        else {
+        if (schedule.id == 0L) {
+            schedule.id = repository.getDb().feedingScheduleDao().insert(schedule);
+        } else {
             ReminderScheduler.cancelFeeding(this, schedule.id);
             repository.getDb().feedingScheduleDao().update(schedule);
         }
+
         ReminderScheduler.cancelFeeding(this, schedule.id);
         setResult(RESULT_OK, new Intent());
         finish();
     }
 
-    private long combineDateAndTime(long dateMillis, int[] time) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(dateMillis > 0L ? dateMillis : System.currentTimeMillis());
-        calendar.set(Calendar.HOUR_OF_DAY, time[0]);
-        calendar.set(Calendar.MINUTE, time[1]);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        return calendar.getTimeInMillis();
-    }
-
-    private void setDateTag(long millis) {
-        binding.inputDate.setTag(millis);
-        binding.inputDate.setText(FormatUtils.humanDate(millis));
-    }
-
-    private long readDateTag() {
-        Object tag = binding.inputDate.getTag();
-        return tag instanceof Long ? (Long) tag : System.currentTimeMillis();
-    }
-
     private String normalizeFoodType(String value) {
-        if (value == null || value.trim().isEmpty()) return "Dry food";
-        for (String type : FOOD_TYPES) if (type.equalsIgnoreCase(value.trim())) return type;
+        if (value == null || value.trim().isEmpty()) {
+            return "Dry food";
+        }
+
+        for (String type : FOOD_TYPES) {
+            if (type.equalsIgnoreCase(value.trim())) {
+                return type;
+            }
+        }
+
         return "Dry food";
     }
 
     private void confirmDelete() {
-        if (editing == null) return;
+        if (editing == null) {
+            return;
+        }
+
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.warning)
                 .setMessage(R.string.confirm_delete)
@@ -184,14 +230,11 @@ public class FeedingScheduleFormActivity extends AppCompatActivity {
                 .show();
     }
 
-    private int[] readTimeTag() {
-        Object tag = binding.inputTime.getTag();
-        return tag instanceof int[] ? (int[]) tag : new int[]{8, 0};
-    }
-
     private String text(android.widget.EditText field) {
         return field.getText() == null ? "" : field.getText().toString().trim();
     }
 
-    private void toast(String value) { Toast.makeText(this, value, Toast.LENGTH_SHORT).show(); }
+    private void toast(String value) {
+        Toast.makeText(this, value, Toast.LENGTH_SHORT).show();
+    }
 }
