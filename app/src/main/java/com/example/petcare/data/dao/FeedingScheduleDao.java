@@ -15,6 +15,9 @@ public interface FeedingScheduleDao {
     @Query("SELECT * FROM feeding_schedules WHERE petId = :petId ORDER BY hourOfDay, minute")
     List<FeedingSchedule> getForPet(long petId);
 
+    @Query("SELECT * FROM feeding_schedules WHERE petId = :petId ORDER BY createdAtEpochMillis DESC, hourOfDay DESC, minute DESC, id DESC")
+    List<FeedingSchedule> getForPetDetails(long petId);
+
     @Query("SELECT * FROM feeding_schedules")
     List<FeedingSchedule> getAll();
 

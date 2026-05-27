@@ -130,6 +130,7 @@ public class PetRepository {
     public List<Vaccination> getVaccinations(long petId) { return db.vaccinationDao().getForPet(petId); }
     public List<Medication> getMedications(long petId) { return db.medicationDao().getForPet(petId); }
     public List<FeedingSchedule> getFeedingSchedules(long petId) { return db.feedingScheduleDao().getForPet(petId); }
+    public List<FeedingSchedule> getFeedingScheduleDetails(long petId) { return db.feedingScheduleDao().getForPetDetails(petId); }
     public List<FeedingLog> getFeedingLogs(long petId) { return db.feedingLogDao().getForPet(petId); }
     public List<MedicationLog> getMedicationLogs(long petId) { return db.medicationLogDao().getForPet(petId); }
     public List<ActivitySession> getActivitySessions(long petId) { return db.activitySessionDao().getForPet(petId); }
