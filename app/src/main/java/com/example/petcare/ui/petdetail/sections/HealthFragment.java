@@ -34,6 +34,7 @@ import com.example.petcare.data.entities.Vaccination;
 import com.example.petcare.data.entities.VetVisit;
 import com.example.petcare.databinding.FragmentHealthSectionBinding;
 import com.example.petcare.ui.forms.MedicationFormActivity;
+import com.example.petcare.ui.forms.MedicationLogFormActivity;
 import com.example.petcare.ui.forms.ReproductiveEventFormActivity;
 import com.example.petcare.ui.forms.SymptomEntryFormActivity;
 import com.example.petcare.ui.forms.VaccinationFormActivity;
@@ -130,7 +131,10 @@ public class HealthFragment extends Fragment {
         TextView chevron = chevron();
         CheckBox checkBox = new CheckBox(requireContext());
         checkBox.setButtonTintList(android.content.res.ColorStateList.valueOf(ThemeUtils.getAccentColor(requireContext())));
-        checkBox.setOnClickListener(v -> completeReminder(item));
+        checkBox.setOnClickListener(v -> {
+            checkBox.setEnabled(false);
+            completeReminder(item);
+        });
         row.addView(body, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(chevron);
         row.addView(checkBox);
@@ -149,6 +153,7 @@ public class HealthFragment extends Fragment {
         CheckBox checkBox = new CheckBox(requireContext());
         checkBox.setChecked(true);
         checkBox.setEnabled(false);
+        checkBox.setButtonTintList(android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.pet_success)));
         row.addView(body, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(chevron);
         row.addView(checkBox);
@@ -216,8 +221,8 @@ public class HealthFragment extends Fragment {
     }
 
     private void completeReminder(Object item) {
-        repository.completeReminder(item);
-        Toast.makeText(requireContext(), "Reminder completed and added to the log", Toast.LENGTH_SHORT).show();
+        boolean completed = repository.completeReminder(item);
+        Toast.makeText(requireContext(), completed ? "Reminder completed and added to the log" : "Reminder already completed", Toast.LENGTH_SHORT).show();
         reload();
     }
 
@@ -237,9 +242,8 @@ public class HealthFragment extends Fragment {
             intent.putExtra(MedicationFormActivity.EXTRA_MEDICATION_ID, ((Medication) item).id);
         } else if (item instanceof MedicationLog) {
             MedicationLog log = (MedicationLog) item;
-            intent = new Intent(requireContext(), MedicationFormActivity.class);
-            intent.putExtra(MedicationFormActivity.EXTRA_PET_ID, petId);
-            intent.putExtra(MedicationFormActivity.EXTRA_MEDICATION_ID, log.medicationId);
+            intent = new Intent(requireContext(), MedicationLogFormActivity.class);
+            intent.putExtra(MedicationLogFormActivity.EXTRA_LOG_ID, log.id);
         } else if (item instanceof SymptomEntry) {
             intent = new Intent(requireContext(), SymptomEntryFormActivity.class);
             intent.putExtra(SymptomEntryFormActivity.EXTRA_PET_ID, petId);
@@ -275,8 +279,8 @@ public class HealthFragment extends Fragment {
         if (item instanceof MedicationLog) {
             MedicationLog log = (MedicationLog) item;
             Medication medication = repository.getDb().medicationDao().getById(log.medicationId);
-            String name = medication == null ? "Medication" : medication.medicationName;
-            String dose = medication == null ? "" : FormatUtils.joinNonEmpty(" ", medication.dosage, medication.dosageUnit);
+            String name = firstNonEmpty(log.medicationName, medication == null ? null : medication.medicationName, "Medication");
+            String dose = firstNonEmpty(log.dosage, medication == null ? null : FormatUtils.joinNonEmpty(" ", medication.dosage, medication.dosageUnit), "");
             return FormatUtils.joinNonEmpty(" · ", name, dose);
         }
         if (item instanceof SymptomEntry) {
@@ -355,4 +359,12 @@ public class HealthFragment extends Fragment {
     }
 
     private int dp(int value) { return (int) (value * getResources().getDisplayMetrics().density + 0.5f); }
+
+    private String firstNonEmpty(String... values) {
+        if (values == null) return "";
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) return value.trim();
+        }
+        return "";
+    }
 }

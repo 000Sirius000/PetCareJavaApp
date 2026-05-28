@@ -15,6 +15,7 @@ import com.example.petcare.data.entities.SymptomTag;
 import com.example.petcare.data.entities.Vaccination;
 import com.example.petcare.data.entities.VetVisit;
 import com.example.petcare.data.entities.WeightEntry;
+import com.example.petcare.reminders.ReminderScheduler;
 import com.example.petcare.util.FormatUtils;
 
 import java.util.ArrayList;
@@ -27,6 +28,8 @@ import java.util.Map;
 public class PetRepository {
     private static final String PREFS = "petcare_prefs";
     private static final String KEY_ACTIVE_PET_ID = "active_pet_id";
+    private static final String KEY_MEDICATION_COMPLETION_PREFIX = "medication_completion_";
+    private static final long COMPLETION_DEBOUNCE_MS = 2_000L;
 
     private final Context appContext;
     private final AppDatabase db;
@@ -450,36 +453,99 @@ public class PetRepository {
         return FormatUtils.number(amount) + " g";
     }
 
-    public void logMedication(long petId, long medicationId, boolean missed) {
+    public long logMedication(long petId, long medicationId, boolean missed) {
+        Medication medication = db.medicationDao().getById(medicationId);
+        String medicationName = medication == null ? "Medication" : medication.medicationName;
+        String dosage = medication == null ? "" : medicationDose(medication);
+        long sourceReminderAt = medication == null ? 0L : medication.nextReminderAt;
+        return logMedication(petId, medicationId, missed, sourceReminderAt, medicationName, dosage);
+    }
+
+    public long logMedication(long petId, long medicationId, boolean missed, long sourceReminderAt, String medicationName, String dosage) {
+        long normalizedSource = Math.max(0L, sourceReminderAt);
+        if (normalizedSource > 0L) {
+            MedicationLog existing = db.medicationLogDao().getByMedicationAndSourceReminder(medicationId, normalizedSource);
+            if (existing != null) return existing.id;
+        }
+
         MedicationLog log = new MedicationLog();
         log.petId = petId;
         log.medicationId = medicationId;
         log.administeredAt = System.currentTimeMillis();
+        log.sourceReminderAt = normalizedSource;
+        log.medicationName = safeText(medicationName, "Medication");
+        log.dosage = safeText(dosage, "");
         log.markedBy = "Owner";
         log.missed = missed;
-        db.medicationLogDao().insert(log);
+        return db.medicationLogDao().insert(log);
     }
 
 
-    public void completeReminder(Object item) {
+    public boolean completeReminder(Object item) {
         if (item instanceof Medication) {
             Medication medication = (Medication) item;
-            logMedication(medication.petId, medication.id, false);
+            return completeMedicationReminder(medication, medication.nextReminderAt, medication.medicationName, medicationDose(medication));
+        } else if (item instanceof Vaccination) {
+            Vaccination vaccination = (Vaccination) item;
+            vaccination.administeredAt = System.currentTimeMillis();
+            vaccination.nextDueAt = null;
+            db.vaccinationDao().update(vaccination);
+            ReminderScheduler.cancelVaccination(appContext, vaccination.id);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean completeMedicationReminder(Medication medication, long sourceReminderAt, String fallbackName, String fallbackDosage) {
+        if (medication == null || medication.id <= 0L) return false;
+
+        long normalizedSource = Math.max(0L, sourceReminderAt);
+        if (normalizedSource > 0L && db.medicationLogDao().getByMedicationAndSourceReminder(medication.id, normalizedSource) != null) {
+            return false;
+        }
+
+        long now = System.currentTimeMillis();
+        if (wasRecentlyCompleted(medication.id, now)) {
+            return false;
+        }
+        rememberCompletion(medication.id, now);
+
+        logMedication(medication.petId, medication.id, false, normalizedSource, fallbackName, fallbackDosage);
+
             int intervalDays = Math.max(1, medication.frequencyIntervalDays);
-            long next = System.currentTimeMillis() + intervalDays * 24L * 60L * 60L * 1000L;
-            if (medication.endDateEpochMillis > 0L && next > medication.endDateEpochMillis) {
+            long next = now + intervalDays * 24L * 60L * 60L * 1000L;
+            if (medication.endDateEpochMillis != null && medication.endDateEpochMillis > 0L && next > medication.endDateEpochMillis) {
                 medication.archived = true;
                 medication.nextReminderAt = 0L;
             } else {
                 medication.nextReminderAt = next;
             }
             db.medicationDao().update(medication);
-        } else if (item instanceof Vaccination) {
-            Vaccination vaccination = (Vaccination) item;
-            vaccination.administeredAt = System.currentTimeMillis();
-            vaccination.nextDueAt = null;
-            db.vaccinationDao().update(vaccination);
+
+        if (medication.archived || medication.nextReminderAt <= 0L) {
+            ReminderScheduler.cancelMedication(appContext, medication.id);
+        } else {
+            ReminderScheduler.scheduleMedication(appContext, medication);
         }
+        return true;
+    }
+
+    private String medicationDose(Medication medication) {
+        if (medication == null) return "";
+        return FormatUtils.joinNonEmpty(" ", medication.dosage, medication.dosageUnit);
+    }
+
+    private String safeText(String value, String fallback) {
+        return value == null || value.trim().isEmpty() ? fallback : value.trim();
+    }
+
+    private boolean wasRecentlyCompleted(long medicationId, long now) {
+        long last = prefs().getLong(KEY_MEDICATION_COMPLETION_PREFIX + medicationId, 0L);
+        return last > 0L && now - last >= 0L && now - last < COMPLETION_DEBOUNCE_MS;
+    }
+
+    private void rememberCompletion(long medicationId, long now) {
+        prefs().edit().putLong(KEY_MEDICATION_COMPLETION_PREFIX + medicationId, now).apply();
     }
 
     public List<Object> getHealthTimeline(long petId) {

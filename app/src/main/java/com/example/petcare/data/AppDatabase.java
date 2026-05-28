@@ -37,7 +37,7 @@ import com.example.petcare.data.entities.WeightEntry;
         entities = { Pet.class, VetVisit.class, Vaccination.class, Medication.class, FeedingSchedule.class,
                 FeedingLog.class, MedicationLog.class, ActivitySession.class, WeightEntry.class,
                 SymptomTag.class, SymptomEntry.class, ReproductiveEvent.class },
-        version = 4,
+        version = 5,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -73,6 +73,22 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `medication_logs` ADD COLUMN `sourceReminderAt` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `medication_logs` ADD COLUMN `medicationName` TEXT");
+            db.execSQL("ALTER TABLE `medication_logs` ADD COLUMN `dosage` TEXT");
+            db.execSQL("UPDATE `medication_logs` SET `medicationName` = (" +
+                    "SELECT `medicationName` FROM `medications` WHERE `medications`.`id` = `medication_logs`.`medicationId`" +
+                    ") WHERE `medicationName` IS NULL OR TRIM(`medicationName`) = ''");
+            db.execSQL("UPDATE `medication_logs` SET `dosage` = TRIM(COALESCE((" +
+                    "SELECT `dosage` FROM `medications` WHERE `medications`.`id` = `medication_logs`.`medicationId`" +
+                    "), '') || ' ' || COALESCE((" +
+                    "SELECT `dosageUnit` FROM `medications` WHERE `medications`.`id` = `medication_logs`.`medicationId`" +
+                    "), '')) WHERE `dosage` IS NULL OR TRIM(`dosage`) = ''");
+        }
+    };
+
     public abstract PetDao petDao();
     public abstract VetVisitDao vetVisitDao();
     public abstract VaccinationDao vaccinationDao();
@@ -91,7 +107,7 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, "petcare.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                             .allowMainThreadQueries()
                             .build();
                 }

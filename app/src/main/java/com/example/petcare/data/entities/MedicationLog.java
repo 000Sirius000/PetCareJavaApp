@@ -11,6 +11,9 @@ public class MedicationLog {
     public long petId;
     public long medicationId;
     public long administeredAt;
+    public long sourceReminderAt;
+    public String medicationName;
+    public String dosage;
     public String markedBy;
     public boolean missed;
 }

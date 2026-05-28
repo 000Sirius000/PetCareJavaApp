@@ -126,6 +126,8 @@ public class MedicationFormActivity extends AppCompatActivity {
         }
         if (!medication.archived) {
             ReminderScheduler.scheduleMedication(this, medication);
+        } else {
+            ReminderScheduler.cancelMedication(this, medication.id);
         }
         setResult(RESULT_OK, new Intent());
         finish();
@@ -138,6 +140,7 @@ public class MedicationFormActivity extends AppCompatActivity {
                 .setMessage(R.string.confirm_delete)
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.delete, (d, w) -> {
+                    ReminderScheduler.cancelMedication(this, editing.id);
                     repository.getDb().medicationDao().delete(editing);
                     setResult(RESULT_OK);
                     finish();

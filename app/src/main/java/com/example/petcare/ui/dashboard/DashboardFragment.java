@@ -177,7 +177,10 @@ public class DashboardFragment extends Fragment {
 
         CheckBox checkBox = new CheckBox(requireContext());
         checkBox.setButtonTintList(android.content.res.ColorStateList.valueOf(ThemeUtils.getAccentColor(requireContext())));
-        checkBox.setOnClickListener(v -> completeReminder(item));
+        checkBox.setOnClickListener(v -> {
+            checkBox.setEnabled(false);
+            completeReminder(item);
+        });
         row.addView(checkBox);
 
         LinearLayout body = new LinearLayout(requireContext());
@@ -217,8 +220,8 @@ public class DashboardFragment extends Fragment {
     }
 
     private void completeReminder(Object item) {
-        repository.completeReminder(item);
-        toast("Reminder completed and added to the health log");
+        boolean completed = repository.completeReminder(item);
+        toast(completed ? "Reminder completed and added to the health log" : "Reminder already completed");
         reload();
     }
 

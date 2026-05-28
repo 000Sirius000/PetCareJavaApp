@@ -32,6 +32,7 @@ import com.example.petcare.util.ThemeUtils;
 public class MainActivity extends AppCompatActivity {
     private static final String PREFS = "petcare_prefs";
     private static final String KEY_PET_ICON = "pet_icon";
+    private static final String KEY_EXACT_ALARM_PERMISSION_REQUESTED = "exact_alarm_permission_requested";
 
     private ActivityMainBinding binding;
     private String themeAtCreate;
@@ -120,8 +121,11 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
             if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+                if (prefs.getBoolean(KEY_EXACT_ALARM_PERMISSION_REQUESTED, false)) return;
                 try {
                     startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + getPackageName())));
+                    prefs.edit().putBoolean(KEY_EXACT_ALARM_PERMISSION_REQUESTED, true).apply();
                 } catch (Exception ignored) { }
             }
         }
