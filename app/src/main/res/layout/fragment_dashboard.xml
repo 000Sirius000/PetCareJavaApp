@@ -111,9 +111,9 @@
 
                     <LinearLayout android:id="@+id/tracker_idle_buttons" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
                         <Button android:id="@+id/button_start_walk" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="▶ Walk" />
-                        <Space android:layout_width="8dp" android:layout_height="1dp" />
+                        <Space android:id="@+id/tracking_button_gap_1" android:layout_width="8dp" android:layout_height="1dp" />
                         <Button android:id="@+id/button_start_run" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="▶ Run" />
-                        <Space android:layout_width="8dp" android:layout_height="1dp" />
+                        <Space android:id="@+id/tracking_button_gap_2" android:layout_width="8dp" android:layout_height="1dp" />
                         <Button android:id="@+id/button_start_play" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="▶ Play" />
                     </LinearLayout>
 

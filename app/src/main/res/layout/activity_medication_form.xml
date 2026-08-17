@@ -54,23 +54,127 @@
         android:hint="Dosage unit" />
 </com.google.android.material.textfield.TextInputLayout>
 
-<Spinner
-    android:id="@+id/input_frequency"
+<com.google.android.material.switchmaterial.SwitchMaterial
+    android:id="@+id/switch_remind"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="12dp" />
+    android:layout_marginTop="16dp"
+    android:checked="true"
+    android:text="Remind me" />
 
-<com.google.android.material.textfield.TextInputLayout
+<LinearLayout
+    android:id="@+id/reminder_schedule_group"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="12dp">
-    <com.google.android.material.textfield.TextInputEditText
-        android:id="@+id/input_interval_days"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Frequency"
+        android:textColor="@color/pet_text_secondary"
+        android:textSize="12sp" />
+
+    <Spinner
+        android:id="@+id/input_frequency"
+        android:layout_width="match_parent"
+        android:layout_height="48dp" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layout_interval_days"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Every N days"
-        android:inputType="number" />
-</com.google.android.material.textfield.TextInputLayout>
+        android:layout_marginTop="8dp"
+        android:visibility="gone">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/input_interval_days"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Every N days"
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <Button
+        android:id="@+id/button_time_one"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Reminder time: 09:00" />
+
+    <Button
+        android:id="@+id/button_time_two"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Second reminder: 21:00"
+        android:visibility="gone" />
+
+    <HorizontalScrollView
+        android:id="@+id/custom_weekdays_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:scrollbars="none"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:id="@+id/day_monday"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true"
+                android:text="M" />
+
+            <CheckBox
+                android:id="@+id/day_tuesday"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true"
+                android:text="T" />
+
+            <CheckBox
+                android:id="@+id/day_wednesday"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true"
+                android:text="W" />
+
+            <CheckBox
+                android:id="@+id/day_thursday"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true"
+                android:text="T" />
+
+            <CheckBox
+                android:id="@+id/day_friday"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true"
+                android:text="F" />
+
+            <CheckBox
+                android:id="@+id/day_saturday"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true"
+                android:text="S" />
+
+            <CheckBox
+                android:id="@+id/day_sunday"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true"
+                android:text="S" />
+        </LinearLayout>
+    </HorizontalScrollView>
+</LinearLayout>
 
 <com.google.android.material.textfield.TextInputLayout
     android:layout_width="match_parent"

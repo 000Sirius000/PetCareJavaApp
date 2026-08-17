@@ -228,18 +228,32 @@ public class DashboardFragment extends Fragment {
     private void setupTrackerButtons() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         boolean enabled = prefs.getBoolean("tracking_enabled", true);
-        binding.trackerCard.setVisibility(enabled ? View.VISIBLE : View.GONE);
-        if (!enabled) return;
-        bindLaunchButton(binding.buttonStartWalk, prefs.getString("tracking_button_1", "Walk"));
-        bindLaunchButton(binding.buttonStartRun, prefs.getString("tracking_button_2", "Run"));
-        bindLaunchButton(binding.buttonStartPlay, prefs.getString("tracking_button_3", "Play"));
+        WalkTrackingStore.State trackingState = WalkTrackingStore.read(requireContext());
+
+        boolean firstVisible = bindLaunchButton(binding.buttonStartWalk, prefs.getString("tracking_button_1", "Walk"));
+        boolean secondVisible = bindLaunchButton(binding.buttonStartRun, prefs.getString("tracking_button_2", "Run"));
+        boolean thirdVisible = bindLaunchButton(binding.buttonStartPlay, prefs.getString("tracking_button_3", "Play"));
+
+        binding.trackingButtonGap1.setVisibility(firstVisible && (secondVisible || thirdVisible) ? View.VISIBLE : View.GONE);
+        binding.trackingButtonGap2.setVisibility(secondVisible && thirdVisible ? View.VISIBLE : View.GONE);
+
+        boolean anyVisible = firstVisible || secondVisible || thirdVisible;
+        binding.trackerCard.setVisibility((enabled && anyVisible) || trackingState.active ? View.VISIBLE : View.GONE);
     }
 
-    private void bindLaunchButton(android.widget.Button button, String type) {
+    private boolean bindLaunchButton(android.widget.Button button, String type) {
+        if (type != null && "disabled".equalsIgnoreCase(type.trim())) {
+            button.setVisibility(View.GONE);
+            button.setTag(null);
+            return false;
+        }
         String normalized = WalkTrackingStore.normalizeActivityType(type);
+        button.setVisibility(View.VISIBLE);
         button.setText("▶ " + normalized);
         button.setTag(normalized);
+        return true;
     }
+
 
     private void startTrackingFromButton(View button) {
         Object tag = button.getTag();

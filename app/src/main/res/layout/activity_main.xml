@@ -18,6 +18,7 @@
         android:layout_height="72dp"
         android:background="@color/pet_surface"
         app:itemIconSize="34dp"
+        app:itemActiveIndicatorStyle="@null"
         app:itemIconTint="@color/bottom_nav_item"
         app:itemTextColor="@color/bottom_nav_item"
         app:labelVisibilityMode="unlabeled"

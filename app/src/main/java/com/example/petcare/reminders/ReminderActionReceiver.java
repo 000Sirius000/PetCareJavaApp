@@ -35,11 +35,16 @@ public class ReminderActionReceiver extends BroadcastReceiver {
                 boolean completed = repository.completeMedicationReminder(medication, sourceReminderAt, title, text);
                 Toast.makeText(context, completed ? "Medication completed" : "Medication already completed", Toast.LENGTH_SHORT).show();
             } else if (action.endsWith("_POSTPONE")) {
-                medication.nextReminderAt = System.currentTimeMillis() + DAY;
-                repository.getDb().medicationDao().update(medication);
-                ReminderScheduler.scheduleMedication(context, medication);
-                Toast.makeText(context, "Medication reminder postponed", Toast.LENGTH_SHORT).show();
+                long base = sourceReminderAt > 0L ? sourceReminderAt : System.currentTimeMillis();
+                long postponedAt = MedicationScheduleCalculator.plusOneCalendarDay(base);
+                if (medication.reminderEnabled && MedicationScheduleCalculator.isWithinCourse(medication, postponedAt)) {
+                    ReminderScheduler.schedulePostponedMedication(context, medication, postponedAt, base);
+                    Toast.makeText(context, "This occurrence was postponed by 1 day", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "The postponed time is outside this medication course", Toast.LENGTH_SHORT).show();
+                }
             } else if (action.endsWith("_CANCEL")) {
+                medication.reminderEnabled = false;
                 medication.nextReminderAt = 0L;
                 repository.getDb().medicationDao().update(medication);
                 ReminderScheduler.cancelMedication(context, medication.id);

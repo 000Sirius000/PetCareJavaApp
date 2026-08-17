@@ -140,7 +140,15 @@ public class MainActivity extends AppCompatActivity {
                     ReminderScheduler.cancelFeeding(this, schedule.id);
                 }
                 for (Medication medication : repository.getMedications(pet.id)) {
-                    if (!medication.archived && medication.nextReminderAt > 0L) ReminderScheduler.scheduleMedication(this, medication);
+                    if (!medication.archived && medication.reminderEnabled
+                            && medication.nextReminderAt <= System.currentTimeMillis()) {
+                        medication.nextReminderAt = com.example.petcare.reminders.MedicationScheduleCalculator
+                                .nextOccurrence(medication, System.currentTimeMillis());
+                        repository.getDb().medicationDao().update(medication);
+                    }
+                    if (!medication.archived && medication.reminderEnabled && medication.nextReminderAt > 0L) {
+                        ReminderScheduler.scheduleMedication(this, medication);
+                    }
                 }
                 for (Vaccination vaccination : repository.getVaccinations(pet.id)) {
                     ReminderScheduler.scheduleVaccinationDue(this, vaccination, leadDays);

@@ -17,6 +17,10 @@ public class Medication {
     public int frequencyIntervalDays;
     public long startDateEpochMillis;
     public Long endDateEpochMillis;
+    public boolean reminderEnabled;
+    public int reminderMinuteOfDay1;
+    public int reminderMinuteOfDay2;
+    public int reminderWeekdayMask;
     public long nextReminderAt;
     public boolean archived;
 }

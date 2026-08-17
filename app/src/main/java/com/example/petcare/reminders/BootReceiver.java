@@ -23,9 +23,13 @@ public class BootReceiver extends BroadcastReceiver {
                 ReminderScheduler.cancelFeeding(context, schedule.id);
             }
             for (Medication medication : repository.getMedications(pet.id)) {
-                if (!medication.archived && medication.nextReminderAt > System.currentTimeMillis()) {
-                    ReminderScheduler.scheduleMedication(context, medication);
+                if (medication.archived || !medication.reminderEnabled) continue;
+                if (medication.nextReminderAt <= System.currentTimeMillis()) {
+                    medication.nextReminderAt = MedicationScheduleCalculator.nextOccurrence(
+                            medication, System.currentTimeMillis());
+                    repository.getDb().medicationDao().update(medication);
                 }
+                if (medication.nextReminderAt > 0L) ReminderScheduler.scheduleMedication(context, medication);
             }
             for (Vaccination vaccination : repository.getVaccinations(pet.id)) {
                 ReminderScheduler.scheduleVaccinationDue(context, vaccination, leadDays);

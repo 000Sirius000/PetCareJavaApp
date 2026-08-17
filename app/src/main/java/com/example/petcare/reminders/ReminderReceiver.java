@@ -11,6 +11,9 @@ import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
 
+import com.example.petcare.data.PetRepository;
+import com.example.petcare.data.entities.Medication;
+
 public class ReminderReceiver extends BroadcastReceiver {
     public static final String CHANNEL_ID = "petcare_reminders";
     private static final String PREFS = "petcare_prefs";
@@ -32,6 +35,29 @@ public class ReminderReceiver extends BroadcastReceiver {
         );
         int notificationId = intent.getIntExtra(ReminderScheduler.EXTRA_NOTIFICATION_ID, defaultNotificationId(action, medicationId, vaccinationId));
 
+        if (action != null && action.startsWith("PETCARE_MEDICATION")) {
+            PetRepository repository = new PetRepository(context);
+            Medication medication = repository.getDb().medicationDao().getById(medicationId);
+            if (medication == null || !medication.reminderEnabled || medication.archived) return;
+
+            boolean advanceCadence = intent.getBooleanExtra(ReminderScheduler.EXTRA_ADVANCE_CADENCE, true);
+            if (advanceCadence) {
+                if (medication.nextReminderAt != sourceReminderAt) return;
+                medication.nextReminderAt = MedicationScheduleCalculator.nextOccurrence(
+                        medication,
+                        Math.max(sourceReminderAt, System.currentTimeMillis())
+                );
+                repository.getDb().medicationDao().update(medication);
+                if (medication.nextReminderAt > 0L) ReminderScheduler.scheduleMedication(context, medication);
+                else ReminderScheduler.cancelMedication(context, medication.id);
+            }
+
+            if (sourceReminderAt > 0L && repository.getDb().medicationLogDao()
+                    .getByMedicationAndSourceReminder(medicationId, sourceReminderAt) != null) {
+                return;
+            }
+        }
+
         if (alreadyShown(context, action, medicationId, vaccinationId, sourceReminderAt)) {
             return;
         }
@@ -43,7 +69,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true);
 
-        if ("PETCARE_MEDICATION".equals(action) || "PETCARE_VACCINATION".equals(action)) {
+        if ((action != null && action.startsWith("PETCARE_MEDICATION")) || "PETCARE_VACCINATION".equals(action)) {
             builder.addAction(android.R.drawable.checkbox_on_background, "Mark done",
                     actionIntent(context, action + "_DONE", petId, medicationId, vaccinationId, notificationId, sourceReminderAt, title, text, 31));
             builder.addAction(android.R.drawable.ic_media_pause, "Postpone 1 day",
@@ -86,7 +112,7 @@ public class ReminderReceiver extends BroadcastReceiver {
     }
 
     private int defaultNotificationId(String action, long medicationId, long vaccinationId) {
-        if ("PETCARE_MEDICATION".equals(action)) return ReminderScheduler.medicationNotificationId(medicationId);
+        if (action != null && action.startsWith("PETCARE_MEDICATION")) return ReminderScheduler.medicationNotificationId(medicationId);
         if ("PETCARE_VACCINATION".equals(action)) return ReminderScheduler.vaccinationNotificationId(vaccinationId);
         return (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
     }

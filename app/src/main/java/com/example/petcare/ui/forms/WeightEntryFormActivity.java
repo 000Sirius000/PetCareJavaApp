@@ -57,8 +57,8 @@ public class WeightEntryFormActivity extends AppCompatActivity {
         binding.inputDate.setText(FormatUtils.date(editing.measuredAt));
         binding.inputWeight.setText(String.valueOf(editing.weightValue));
         selectSpinnerValue(binding.inputUnit, editing.unit);
-        binding.inputHealthyMin.setText(editing.healthyMin == null ? "" : String.valueOf(editing.healthyMin));
-        binding.inputHealthyMax.setText(editing.healthyMax == null ? "" : String.valueOf(editing.healthyMax));
+
+
         binding.buttonDelete.setVisibility(android.view.View.VISIBLE);
     }
 
@@ -68,8 +68,8 @@ public class WeightEntryFormActivity extends AppCompatActivity {
         entry.measuredAt = readTag();
         entry.weightValue = parseDouble(text(binding.inputWeight), 0);
         entry.unit = String.valueOf(binding.inputUnit.getSelectedItem());
-        entry.healthyMin = text(binding.inputHealthyMin).isEmpty() ? null : parseDouble(text(binding.inputHealthyMin), 0);
-        entry.healthyMax = text(binding.inputHealthyMax).isEmpty() ? null : parseDouble(text(binding.inputHealthyMax), 0);
+
+
         if (entry.weightValue <= 0) {
             toast("Weight must be greater than zero");
             return;

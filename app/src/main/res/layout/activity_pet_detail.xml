@@ -25,6 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/pet_surface"
+        app:itemActiveIndicatorStyle="@null"
         app:itemIconTint="@color/bottom_nav_item"
         app:itemTextColor="@color/bottom_nav_item"
         app:labelVisibilityMode="labeled"

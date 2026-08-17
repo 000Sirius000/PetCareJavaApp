@@ -32,6 +32,7 @@
         <item>Wet food (canned)</item>
     </string-array>
     <string-array name="severity_options">
+        <item>Unspecified</item>
         <item>Mild</item>
         <item>Moderate</item>
         <item>Severe</item>
@@ -53,6 +54,7 @@
         <item>Spay / neutering</item>
     </string-array>
     <string-array name="tracking_activity_options">
+        <item>Disabled</item>
         <item>Walk</item>
         <item>Run</item>
         <item>Play</item>

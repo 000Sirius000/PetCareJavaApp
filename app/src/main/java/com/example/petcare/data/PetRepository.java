@@ -255,7 +255,7 @@ public class PetRepository {
     public int getPendingReminderCount(long petId) {
         int count = 0;
         for (Medication medication : db.medicationDao().getForPet(petId)) {
-            if (!medication.archived) count++;
+            if (!medication.archived && medication.reminderEnabled && medication.nextReminderAt > 0L) count++;
         }
         int leadDays = prefs().getInt("vax_days", 30);
         long leadTime = System.currentTimeMillis() + (leadDays * 24L * 60 * 60 * 1000);
@@ -313,7 +313,7 @@ public class PetRepository {
         List<Object> items = new ArrayList<>();
 
         for (Medication medication : getMedications(petId)) {
-            if (!medication.archived && medication.nextReminderAt > 0L) {
+            if (!medication.archived && medication.reminderEnabled && medication.nextReminderAt > 0L) {
                 items.add(medication);
             }
         }
@@ -424,6 +424,10 @@ public class PetRepository {
         medication.frequencyIntervalDays = 1;
         medication.startDateEpochMillis = System.currentTimeMillis() - 3L * 24 * 60 * 60 * 1000;
         medication.endDateEpochMillis = System.currentTimeMillis() + 14L * 24 * 60 * 60 * 1000;
+        medication.reminderEnabled = true;
+        medication.reminderMinuteOfDay1 = 9 * 60;
+        medication.reminderMinuteOfDay2 = 21 * 60;
+        medication.reminderWeekdayMask = 127;
         medication.nextReminderAt = System.currentTimeMillis() + 2L * 60 * 60 * 1000;
         medication.archived = false;
         db.medicationDao().insert(medication);
@@ -511,22 +515,6 @@ public class PetRepository {
         rememberCompletion(medication.id, now);
 
         logMedication(medication.petId, medication.id, false, normalizedSource, fallbackName, fallbackDosage);
-
-            int intervalDays = Math.max(1, medication.frequencyIntervalDays);
-            long next = now + intervalDays * 24L * 60L * 60L * 1000L;
-            if (medication.endDateEpochMillis != null && medication.endDateEpochMillis > 0L && next > medication.endDateEpochMillis) {
-                medication.archived = true;
-                medication.nextReminderAt = 0L;
-            } else {
-                medication.nextReminderAt = next;
-            }
-            db.medicationDao().update(medication);
-
-        if (medication.archived || medication.nextReminderAt <= 0L) {
-            ReminderScheduler.cancelMedication(appContext, medication.id);
-        } else {
-            ReminderScheduler.scheduleMedication(appContext, medication);
-        }
         return true;
     }
 

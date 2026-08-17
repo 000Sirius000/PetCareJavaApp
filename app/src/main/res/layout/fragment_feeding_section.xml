@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/pet_background"
@@ -20,7 +21,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Grams consumed by food type"
+        android:text="Kilograms consumed by food type"
         android:textColor="@color/pet_text_secondary"
         android:textSize="14sp" />
 
@@ -35,6 +36,44 @@
         <Button android:id="@+id/button_month" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:text="Month" />
         <Space android:layout_width="8dp" android:layout_height="1dp" />
         <Button android:id="@+id/button_year" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:text="Year" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/button_previous_period"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Previous period"
+            android:padding="12dp"
+            android:src="@android:drawable/ic_media_previous"
+            app:tint="@color/pet_text_primary" />
+
+        <TextView
+            android:id="@+id/period_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textColor="@color/pet_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/button_next_period"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Next period"
+            android:padding="12dp"
+            android:src="@android:drawable/ic_media_next"
+            app:tint="@color/pet_text_primary" />
     </LinearLayout>
 
     <LinearLayout
@@ -56,7 +95,7 @@
             android:id="@+id/feeding_stats"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Total 0 g · Avg 0/day"
+            android:text="Total 0 kg · Avg 0/day"
             android:textColor="@color/pet_text_secondary"
             android:textSize="12sp" />
     </LinearLayout>

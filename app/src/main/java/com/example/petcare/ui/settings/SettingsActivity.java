@@ -1,5 +1,6 @@
 package com.example.petcare.ui.settings;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.AdapterView;
@@ -55,6 +56,18 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             });
 
+    private final ActivityResultLauncher<String[]> externalImportLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri == null) return;
+                try {
+                    getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } catch (Exception ignored) { }
+                Intent intent = new Intent(this, ExternalImportActivity.class);
+                intent.setData(uri);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         ThemeUtils.applyActivityTheme(this);
@@ -76,6 +89,11 @@ public class SettingsActivity extends AppCompatActivity {
 
         binding.buttonExportJson.setOnClickListener(v -> exportLauncher.launch("petcare_backup.json"));
         binding.buttonImportJson.setOnClickListener(v -> confirmImport());
+        binding.buttonImportExternal.setOnClickListener(v -> externalImportLauncher.launch(new String[]{
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/zip",
+                "*/*"
+        }));
 
         binding.inputGracePeriod.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) savePrefs();
@@ -333,6 +351,7 @@ public class SettingsActivity extends AppCompatActivity {
     private String normalizeTrackingValue(String value) {
         if (value == null) return "Walk";
         String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("disabled") || normalized.equals("none") || normalized.equals("off")) return "Disabled";
         if (normalized.equals("run")) return "Run";
         if (normalized.equals("play")) return "Play";
         if (normalized.equals("swim")) return "Swim";

@@ -11,14 +11,13 @@ import com.example.petcare.data.entities.Medication;
 import com.example.petcare.data.entities.Vaccination;
 import com.example.petcare.util.FormatUtils;
 
-import java.util.Calendar;
-
 public class ReminderScheduler {
     static final String EXTRA_NOTIFICATION_ID = "notificationId";
     static final String EXTRA_REMINDER_AT = "reminderAt";
     static final String EXTRA_SOURCE_REMINDER_AT = "sourceReminderAt";
     static final String EXTRA_TITLE = "title";
     static final String EXTRA_TEXT = "text";
+    static final String EXTRA_ADVANCE_CADENCE = "advanceCadence";
 
     /**
      * Feeding reminders were removed from the product.
@@ -50,30 +49,60 @@ public class ReminderScheduler {
     }
 
     public static void scheduleMedication(Context context, Medication medication) {
-        if (medication == null || medication.id <= 0L || medication.archived || medication.nextReminderAt <= 0L) {
+        if (medication == null || medication.id <= 0L || !medication.reminderEnabled
+                || medication.archived || medication.nextReminderAt <= 0L) {
             cancelMedication(context, medication == null ? 0L : medication.id);
             return;
         }
 
+        scheduleMedicationOccurrence(
+                context,
+                medication,
+                medication.nextReminderAt,
+                medication.nextReminderAt,
+                true,
+                medicationNotificationId(medication.id)
+        );
+    }
+
+    public static void schedulePostponedMedication(Context context, Medication medication,
+                                                   long triggerAt, long originalOccurrenceAt) {
+        if (medication == null || medication.id <= 0L || !medication.reminderEnabled
+                || medication.archived || triggerAt <= 0L) return;
+        scheduleMedicationOccurrence(
+                context,
+                medication,
+                triggerAt,
+                triggerAt,
+                false,
+                postponedMedicationNotificationId(medication.id, originalOccurrenceAt)
+        );
+    }
+
+    private static void scheduleMedicationOccurrence(Context context, Medication medication,
+                                                     long triggerAt, long sourceReminderAt,
+                                                     boolean advanceCadence, int notificationId) {
+
         Intent intent = new Intent(context, ReminderReceiver.class);
-        intent.setAction("PETCARE_MEDICATION");
+        intent.setAction(advanceCadence ? "PETCARE_MEDICATION" : "PETCARE_MEDICATION_POSTPONED");
         intent.putExtra("petId", medication.petId);
         intent.putExtra("medicationId", medication.id);
         intent.putExtra(EXTRA_TITLE, medication.medicationName);
-        intent.putExtra(EXTRA_TEXT, medication.dosage + " " + medication.dosageUnit);
-        intent.putExtra(EXTRA_REMINDER_AT, medication.nextReminderAt);
-        intent.putExtra(EXTRA_SOURCE_REMINDER_AT, medication.nextReminderAt);
-        intent.putExtra(EXTRA_NOTIFICATION_ID, medicationNotificationId(medication.id));
+        intent.putExtra(EXTRA_TEXT, safeText(medication.dosage) + " " + safeText(medication.dosageUnit));
+        intent.putExtra(EXTRA_REMINDER_AT, triggerAt);
+        intent.putExtra(EXTRA_SOURCE_REMINDER_AT, sourceReminderAt);
+        intent.putExtra(EXTRA_ADVANCE_CADENCE, advanceCadence);
+        intent.putExtra(EXTRA_NOTIFICATION_ID, notificationId);
 
         PendingIntent pi = PendingIntent.getBroadcast(
                 context,
-                medicationNotificationId(medication.id),
+                notificationId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        setAlarmSafely(context, alarmManager, medication.nextReminderAt, pi);
+        setAlarmSafely(context, alarmManager, triggerAt, pi);
     }
 
     public static void cancelMedication(Context context, long medicationId) {
@@ -124,6 +153,15 @@ public class ReminderScheduler {
 
     static int vaccinationNotificationId(long vaccinationId) {
         return (int) (30000 + vaccinationId);
+    }
+
+    static int postponedMedicationNotificationId(long medicationId, long occurrenceAt) {
+        long value = 400_000L + medicationId * 97L + Math.abs(occurrenceAt / 60_000L);
+        return (int) (value % (Integer.MAX_VALUE - 1L)) + 1;
+    }
+
+    private static String safeText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private static void cancelReminder(Context context, String action, int requestCode) {

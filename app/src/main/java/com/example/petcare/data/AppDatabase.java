@@ -37,7 +37,7 @@ import com.example.petcare.data.entities.WeightEntry;
         entities = { Pet.class, VetVisit.class, Vaccination.class, Medication.class, FeedingSchedule.class,
                 FeedingLog.class, MedicationLog.class, ActivitySession.class, WeightEntry.class,
                 SymptomTag.class, SymptomEntry.class, ReproductiveEvent.class },
-        version = 5,
+        version = 6,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -89,6 +89,23 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override public void migrate(SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE `medications` ADD COLUMN `reminderEnabled` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `medications` ADD COLUMN `reminderMinuteOfDay1` INTEGER NOT NULL DEFAULT 540");
+            db.execSQL("ALTER TABLE `medications` ADD COLUMN `reminderMinuteOfDay2` INTEGER NOT NULL DEFAULT 1260");
+            db.execSQL("ALTER TABLE `medications` ADD COLUMN `reminderWeekdayMask` INTEGER NOT NULL DEFAULT 127");
+            db.execSQL("UPDATE `medications` SET `reminderEnabled` = CASE " +
+                    "WHEN `nextReminderAt` > 0 AND `archived` = 0 THEN 1 ELSE 0 END");
+            db.execSQL("UPDATE `medications` SET `reminderMinuteOfDay1` = " +
+                    "CAST(strftime('%H', `nextReminderAt` / 1000, 'unixepoch', 'localtime') AS INTEGER) * 60 + " +
+                    "CAST(strftime('%M', `nextReminderAt` / 1000, 'unixepoch', 'localtime') AS INTEGER) " +
+                    "WHERE `nextReminderAt` > 0");
+            db.execSQL("UPDATE `medications` SET `reminderMinuteOfDay2` = " +
+                    "(`reminderMinuteOfDay1` + 720) % 1440");
+        }
+    };
+
     public abstract PetDao petDao();
     public abstract VetVisitDao vetVisitDao();
     public abstract VaccinationDao vaccinationDao();
@@ -107,7 +124,7 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (instance == null) {
                     instance = Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, "petcare.db")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                             .allowMainThreadQueries()
                             .build();
                 }

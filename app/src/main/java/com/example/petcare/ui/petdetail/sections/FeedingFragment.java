@@ -21,12 +21,13 @@ import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.FeedingLog;
 import com.example.petcare.data.entities.FeedingSchedule;
 import com.example.petcare.databinding.FragmentFeedingSectionBinding;
+import com.example.petcare.ui.common.ChartPeriod;
+import com.example.petcare.ui.common.ChartStats;
 import com.example.petcare.ui.common.FilterRange;
 import com.example.petcare.ui.forms.FeedingScheduleFormActivity;
 import com.example.petcare.util.FormatUtils;
 import com.example.petcare.util.ThemeUtils;
 
-import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -37,6 +38,7 @@ public class FeedingFragment extends Fragment {
     private FragmentFeedingSectionBinding binding;
     private PetRepository repository;
     private FilterRange range = FilterRange.WEEK;
+    private ChartPeriod period;
 
     private final ActivityResultLauncher<Intent> formLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> reload());
@@ -69,6 +71,8 @@ public class FeedingFragment extends Fragment {
         binding.buttonWeek.setOnClickListener(v -> setRange(FilterRange.WEEK));
         binding.buttonMonth.setOnClickListener(v -> setRange(FilterRange.MONTH));
         binding.buttonYear.setOnClickListener(v -> setRange(FilterRange.YEAR));
+        binding.buttonPreviousPeriod.setOnClickListener(v -> movePeriod(-1));
+        binding.buttonNextPeriod.setOnClickListener(v -> movePeriod(1));
 
         reload();
         return binding.getRoot();
@@ -82,69 +86,102 @@ public class FeedingFragment extends Fragment {
 
     private void setRange(FilterRange newRange) {
         range = newRange;
+        period = null;
+        reload();
+    }
+
+    private void movePeriod(int amount) {
+        if (period == null) return;
+        period = period.shift(amount);
         reload();
     }
 
     private void reload() {
         List<FeedingSchedule> schedules = repository.getFeedingSchedules(petId);
         List<FeedingLog> logs = repository.getFeedingLogs(petId);
-        binding.feedingChart.setData(logs, schedules, range);
+        ensurePeriod(logs, schedules);
+        binding.feedingChart.setData(logs, schedules, period);
         binding.feedingStats.setText(feedingStats(logs, schedules));
-        binding.sectionSubtitle.setText("Grams consumed by food type - " + range.name());
+        binding.sectionSubtitle.setText("Kilograms consumed by food type");
+        binding.periodLabel.setText(period.label);
         updateFilterButtons();
+        updatePeriodNavigation(logs, schedules);
     }
 
     private String feedingStats(List<FeedingLog> logs, List<FeedingSchedule> schedules) {
-        long[] bounds = rangeBounds();
+        double[] bucketTotals = new double[period.buckets.size()];
         double total = 0d;
         for (FeedingLog log : logs) {
-            if (log.completedAt >= bounds[0] && log.completedAt <= bounds[1]) total += FormatUtils.parseLeadingNumber(log.portion);
+            int bucket = period.bucketIndex(log.completedAt);
+            if (bucket < 0) continue;
+            double value = FormatUtils.parseLeadingNumber(log.portion);
+            if (value <= 0d) continue;
+            total += value;
+            bucketTotals[bucket] += value;
         }
         for (FeedingSchedule schedule : schedules) {
-            long t = schedule.createdAtEpochMillis > 0L ? schedule.createdAtEpochMillis : System.currentTimeMillis();
-            if (t >= bounds[0] && t <= bounds[1]) total += FormatUtils.parseLeadingNumber(schedule.portion);
+            long timestamp = schedule.createdAtEpochMillis > 0L
+                    ? schedule.createdAtEpochMillis
+                    : period.endMillis;
+            int bucket = period.bucketIndex(timestamp);
+            if (bucket < 0) continue;
+            double value = FormatUtils.parseLeadingNumber(schedule.portion);
+            if (value <= 0d) continue;
+            total += value;
+            bucketTotals[bucket] += value;
         }
-        int divisor = averageDivisor();
-        double avg = divisor <= 0 ? 0d : total / divisor;
-        return String.format(Locale.getDefault(), "Total %s g - Avg %s/%s", FormatUtils.number(total), FormatUtils.number(avg), avgUnit());
-    }
-
-    private long[] rangeBounds() {
-        Calendar now = Calendar.getInstance();
-        Calendar start = Calendar.getInstance();
-        Calendar end = Calendar.getInstance();
-        if (range == FilterRange.YEAR) {
-            start.clear();
-            start.set(now.get(Calendar.YEAR), Calendar.JANUARY, 1, 0, 0, 0);
-            end.clear();
-            end.set(now.get(Calendar.YEAR), Calendar.DECEMBER, 31, 23, 59, 59);
-        } else if (range == FilterRange.MONTH) {
-            start.clear();
-            start.set(now.get(Calendar.YEAR), now.get(Calendar.MONTH), 1, 0, 0, 0);
-            end.clear();
-            end.set(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-        } else {
-            start.add(Calendar.DAY_OF_YEAR, -6);
-            start.set(Calendar.HOUR_OF_DAY, 0);
-            start.set(Calendar.MINUTE, 0);
-            start.set(Calendar.SECOND, 0);
-            start.set(Calendar.MILLISECOND, 0);
-            end.set(Calendar.HOUR_OF_DAY, 23);
-            end.set(Calendar.MINUTE, 59);
-            end.set(Calendar.SECOND, 59);
-            end.set(Calendar.MILLISECOND, 999);
-        }
-        return new long[]{start.getTimeInMillis(), end.getTimeInMillis()};
-    }
-
-    private int averageDivisor() {
-        if (range == FilterRange.YEAR) return 12;
-        if (range == FilterRange.MONTH) return Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH);
-        return 7;
+        double avg = ChartStats.averagePositive(bucketTotals);
+        return String.format(Locale.getDefault(), "Total %s kg - Avg %s/%s", FormatUtils.kilogramsFromGrams(total), FormatUtils.kilogramsFromGrams(avg), avgUnit());
     }
 
     private String avgUnit() {
         return range == FilterRange.YEAR ? "mo" : "day";
+    }
+
+    private void ensurePeriod(List<FeedingLog> logs, List<FeedingSchedule> schedules) {
+        if (period != null) return;
+        long latest = 0L;
+        boolean hasUndatedSchedule = false;
+        for (FeedingLog log : logs) latest = Math.max(latest, log.completedAt);
+        for (FeedingSchedule schedule : schedules) {
+            if (schedule.createdAtEpochMillis > 0L) latest = Math.max(latest, schedule.createdAtEpochMillis);
+            else hasUndatedSchedule = true;
+        }
+        if (hasUndatedSchedule) latest = Math.max(latest, System.currentTimeMillis());
+        period = ChartPeriod.of(range, latest > 0L ? latest : System.currentTimeMillis());
+    }
+
+    private void updatePeriodNavigation(List<FeedingLog> logs, List<FeedingSchedule> schedules) {
+        long earliest = Long.MAX_VALUE;
+        long latest = 0L;
+        boolean hasUndatedSchedule = false;
+        for (FeedingLog log : logs) {
+            if (log.completedAt <= 0L) continue;
+            earliest = Math.min(earliest, log.completedAt);
+            latest = Math.max(latest, log.completedAt);
+        }
+        for (FeedingSchedule schedule : schedules) {
+            if (schedule.createdAtEpochMillis > 0L) {
+                earliest = Math.min(earliest, schedule.createdAtEpochMillis);
+                latest = Math.max(latest, schedule.createdAtEpochMillis);
+            } else {
+                hasUndatedSchedule = true;
+            }
+        }
+        if (hasUndatedSchedule) {
+            long now = System.currentTimeMillis();
+            earliest = Math.min(earliest, now);
+            latest = Math.max(latest, now);
+        }
+        if (latest <= 0L) {
+            binding.buttonPreviousPeriod.setEnabled(false);
+            binding.buttonNextPeriod.setEnabled(false);
+            return;
+        }
+        long earliestStart = ChartPeriod.periodStart(range, earliest);
+        long latestStart = ChartPeriod.periodStart(range, latest);
+        binding.buttonPreviousPeriod.setEnabled(period.startMillis > earliestStart);
+        binding.buttonNextPeriod.setEnabled(period.startMillis < latestStart);
     }
 
     private void updateFilterButtons() {

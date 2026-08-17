@@ -51,5 +51,6 @@
         <item name="android:background">@color/pet_surface</item>
         <item name="itemIconTint">@color/bottom_nav_item</item>
         <item name="itemTextColor">@color/bottom_nav_item</item>
+        <item name="itemActiveIndicatorStyle">@null</item>
     </style>
 </resources>

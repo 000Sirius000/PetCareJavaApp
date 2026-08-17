@@ -1,6 +1,7 @@
 package com.example.petcare.ui.common;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -56,13 +57,24 @@ public class SimpleRowAdapter extends RecyclerView.Adapter<SimpleRowAdapter.RowV
     public void onBindViewHolder(@NonNull RowViewHolder holder, int position) {
         Object item = items.get(position);
         holder.binding.rowTitle.setText(mapper.title(item));
-        holder.binding.rowSubtitle.setText(mapper.subtitle(item));
-        holder.binding.rowMeta.setText(mapper.meta(item));
+
+        String subtitle = mapper.subtitle(item);
+        holder.binding.rowSubtitle.setText(subtitle);
+        holder.binding.rowSubtitle.setVisibility(isBlank(subtitle) ? View.GONE : View.VISIBLE);
+
+        String meta = mapper.meta(item);
+        holder.binding.rowMeta.setText(meta);
+        holder.binding.rowMeta.setVisibility(isBlank(meta) ? View.GONE : View.VISIBLE);
+
         holder.itemView.setOnClickListener(v -> {
             if (onRowClickListener != null) {
                 onRowClickListener.onRowClick(item);
             }
         });
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     @Override

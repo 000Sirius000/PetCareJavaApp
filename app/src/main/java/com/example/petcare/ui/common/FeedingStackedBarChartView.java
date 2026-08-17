@@ -16,9 +16,7 @@ import com.example.petcare.data.entities.FeedingSchedule;
 import com.example.petcare.util.FormatUtils;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 
 public class FeedingStackedBarChartView extends View {
     private static final int COLOR_NATURAL = 0xFF4CAF50;
@@ -34,7 +32,7 @@ public class FeedingStackedBarChartView extends View {
 
     private List<FeedingLog> logs = new ArrayList<>();
     private List<FeedingSchedule> schedules = new ArrayList<>();
-    private FilterRange range = FilterRange.WEEK;
+    private ChartPeriod period = ChartPeriod.of(FilterRange.WEEK, System.currentTimeMillis());
     private int selectedBarIndex = -1;
 
     public FeedingStackedBarChartView(Context context, AttributeSet attrs) {
@@ -49,16 +47,18 @@ public class FeedingStackedBarChartView extends View {
         tooltipBorderPaint.setStrokeWidth(2f);
     }
 
-    public void setData(List<FeedingLog> logs, List<FeedingSchedule> schedules, FilterRange range) {
+    public void setData(List<FeedingLog> logs, List<FeedingSchedule> schedules, ChartPeriod period) {
         this.logs = logs == null ? new ArrayList<>() : new ArrayList<>(logs);
         this.schedules = schedules == null ? new ArrayList<>() : new ArrayList<>(schedules);
-        this.range = range == null ? FilterRange.WEEK : range;
+        this.period = period == null
+                ? ChartPeriod.of(FilterRange.WEEK, System.currentTimeMillis())
+                : period;
         this.selectedBarIndex = -1;
         invalidate();
     }
 
-    public void setData(List<FeedingLog> logs, FilterRange range) {
-        setData(logs, null, range);
+    public void setData(List<FeedingLog> logs, ChartPeriod period) {
+        setData(logs, null, period);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class FeedingStackedBarChartView extends View {
 
         canvas.drawLine(left, bottom, right, bottom, axisPaint);
         canvas.drawLine(left, top, left, bottom, axisPaint);
-        canvas.drawText("g", 18f, top + 18f, textPaint);
+        canvas.drawText("kg", 18f, top + 18f, textPaint);
 
         buildBars();
         if (bars.isEmpty()) {
@@ -102,7 +102,7 @@ public class FeedingStackedBarChartView extends View {
                 currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.dry, max, COLOR_DRY);
                 currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.wet, max, COLOR_WET);
                 bar.top = currentBottom;
-                canvas.drawText(FormatUtils.number(bar.total()), x + 2f, bar.top - 8f, textPaint);
+                canvas.drawText(FormatUtils.kilogramsFromGrams(bar.total()), x + 2f, bar.top - 8f, textPaint);
             }
             bar.left = x; bar.right = x + barWidth; bar.bottom = bottom;
             if (shouldShowXAxisLabel(i, bar.label)) canvas.drawText(bar.label, x - 8f, bottom + 28f, textPaint);
@@ -149,14 +149,14 @@ public class FeedingStackedBarChartView extends View {
         drawTooltipLine(canvas, x + 12f, y + 66f, COLOR_DRY, "Dry food", bar.dry);
         drawTooltipLine(canvas, x + 12f, y + 87f, COLOR_WET, "Wet food", bar.wet);
         textPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_primary));
-        canvas.drawText("Total: " + FormatUtils.number(bar.total()) + " g", x + 12f, y + 104f, textPaint);
+        canvas.drawText("Total: " + FormatUtils.kilogramsFromGrams(bar.total()) + " kg", x + 12f, y + 104f, textPaint);
         textPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_secondary));
     }
 
     private void drawTooltipLine(Canvas canvas, float x, float y, int color, String label, double grams) {
         fillPaint.setColor(color);
         canvas.drawRect(x, y - 11f, x + 11f, y, fillPaint);
-        canvas.drawText(label + ": " + (grams > 0d ? FormatUtils.number(grams) + " g" : "—"), x + 18f, y, textPaint);
+        canvas.drawText(label + ": " + (grams > 0d ? FormatUtils.kilogramsFromGrams(grams) + " kg" : "—"), x + 18f, y, textPaint);
     }
 
     @Override
@@ -176,7 +176,7 @@ public class FeedingStackedBarChartView extends View {
     }
 
     private boolean shouldShowXAxisLabel(int index, String label) {
-        if (range != FilterRange.MONTH) return true;
+        if (period.range != FilterRange.MONTH) return true;
         try {
             int day = Integer.parseInt(label);
             return day == 1 || day == 5 || day == 10 || day == 15 || day == 20 || day == 25 || day == 30;
@@ -187,40 +187,10 @@ public class FeedingStackedBarChartView extends View {
 
     private void buildBars() {
         bars.clear();
-        Calendar now = Calendar.getInstance();
-        if (range == FilterRange.YEAR) {
-            int year = now.get(Calendar.YEAR);
-            for (int month = 0; month < 12; month++) {
-                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, 1, 0, 0, 0);
-                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, start.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-                BarInfo info = sumBetween(start.getTimeInMillis(), end.getTimeInMillis());
-                info.label = new java.text.DateFormatSymbols(Locale.getDefault()).getShortMonths()[month];
-                bars.add(info);
-            }
-            return;
-        }
-        if (range == FilterRange.MONTH) {
-            int year = now.get(Calendar.YEAR);
-            int month = now.get(Calendar.MONTH);
-            int days = now.getActualMaximum(Calendar.DAY_OF_MONTH);
-            for (int day = 1; day <= days; day++) {
-                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, day, 0, 0, 0);
-                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, day, 23, 59, 59);
-                BarInfo info = sumBetween(start.getTimeInMillis(), end.getTimeInMillis());
-                info.label = String.valueOf(day);
-                bars.add(info);
-            }
-            return;
-        }
-        Calendar day = Calendar.getInstance();
-        day.add(Calendar.DAY_OF_YEAR, -6);
-        for (int i = 0; i < 7; i++) {
-            Calendar start = (Calendar) day.clone(); start.set(Calendar.HOUR_OF_DAY, 0); start.set(Calendar.MINUTE, 0); start.set(Calendar.SECOND, 0); start.set(Calendar.MILLISECOND, 0);
-            Calendar end = (Calendar) start.clone(); end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59); end.set(Calendar.SECOND, 59);
-            BarInfo info = sumBetween(start.getTimeInMillis(), end.getTimeInMillis());
-            info.label = FormatUtils.dayLabel(start.getTimeInMillis());
+        for (ChartPeriod.Bucket bucket : period.buckets) {
+            BarInfo info = sumBetween(bucket.startMillis, bucket.endMillis);
+            info.label = bucket.label;
             bars.add(info);
-            day.add(Calendar.DAY_OF_YEAR, 1);
         }
     }
 
@@ -231,7 +201,7 @@ public class FeedingStackedBarChartView extends View {
             add(info, log.foodType, FormatUtils.parseLeadingNumber(log.portion));
         }
         for (FeedingSchedule schedule : schedules) {
-            long t = schedule.createdAtEpochMillis > 0L ? schedule.createdAtEpochMillis : System.currentTimeMillis();
+            long t = schedule.createdAtEpochMillis > 0L ? schedule.createdAtEpochMillis : period.endMillis;
             if (t < start || t > end) continue;
             add(info, schedule.foodType, FormatUtils.parseLeadingNumber(schedule.portion));
         }

@@ -20,12 +20,13 @@ import com.example.petcare.R;
 import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.ActivitySession;
 import com.example.petcare.databinding.FragmentActivityOnlySectionBinding;
+import com.example.petcare.ui.common.ChartPeriod;
+import com.example.petcare.ui.common.ChartStats;
 import com.example.petcare.ui.common.FilterRange;
 import com.example.petcare.ui.forms.ActivitySessionFormActivity;
 import com.example.petcare.util.FormatUtils;
 import com.example.petcare.util.ThemeUtils;
 
-import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -36,6 +37,7 @@ public class ActivityFragment extends Fragment {
     private FragmentActivityOnlySectionBinding binding;
     private PetRepository repository;
     private FilterRange range = FilterRange.WEEK;
+    private ChartPeriod period;
 
     private final ActivityResultLauncher<Intent> formLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> reload());
@@ -69,6 +71,8 @@ public class ActivityFragment extends Fragment {
         binding.buttonWeek.setOnClickListener(v -> setRange(FilterRange.WEEK));
         binding.buttonMonth.setOnClickListener(v -> setRange(FilterRange.MONTH));
         binding.buttonYear.setOnClickListener(v -> setRange(FilterRange.YEAR));
+        binding.buttonPreviousPeriod.setOnClickListener(v -> movePeriod(-1));
+        binding.buttonNextPeriod.setOnClickListener(v -> movePeriod(1));
 
         reload();
         return binding.getRoot();
@@ -82,70 +86,92 @@ public class ActivityFragment extends Fragment {
 
     private void setRange(FilterRange newRange) {
         range = newRange;
+        period = null;
+        reload();
+    }
+
+    private void movePeriod(int amount) {
+        if (period == null) return;
+        period = period.shift(amount);
         reload();
     }
 
     private void reload() {
         List<ActivitySession> items = repository.getActivitySessions(petId);
-        binding.activityChart.setData(items, range);
-        binding.activityDistanceChart.setData(items, range);
-        binding.sectionSubtitle.setText("Time and distance charts • " + range.name());
+        ensurePeriod(items);
+        binding.activityChart.setData(items, period);
+        binding.activityDistanceChart.setData(items, period);
+        binding.sectionSubtitle.setText("Time and distance charts");
+        binding.periodLabel.setText(period.label);
         binding.activityTimeStats.setText(activityStats(items, false));
         binding.activityDistanceStats.setText(activityStats(items, true));
         updateFilterButtons();
+        updatePeriodNavigation(items);
     }
 
     private String activityStats(List<ActivitySession> items, boolean distance) {
-        long[] bounds = rangeBounds();
+        double[] bucketTotals = new double[period.buckets.size()];
+        boolean[] filled = new boolean[period.buckets.size()];
         double total = 0d;
         for (ActivitySession item : items) {
-            if (item.sessionDateEpochMillis < bounds[0] || item.sessionDateEpochMillis > bounds[1]) continue;
+            int bucket = period.bucketIndex(item.sessionDateEpochMillis);
+            if (bucket < 0) continue;
             if (distance) {
-                if (item.distance != null && supportsDistance(item.activityType)) total += Math.max(0d, item.distance);
+                if (item.distance != null && supportsDistance(item.activityType)) {
+                    double value = Math.max(0d, item.distance);
+                    total += value;
+                    bucketTotals[bucket] += value;
+                    filled[bucket] = true;
+                }
             } else {
-                total += Math.max(0, item.durationMinutes);
+                double value = Math.max(0, item.durationMinutes);
+                total += value;
+                bucketTotals[bucket] += value;
             }
         }
-        int divisor = averageDivisor();
         if (distance) {
-            double avg = divisor <= 0 ? 0d : total / divisor;
+            double avg = ChartStats.averageFilled(bucketTotals, filled);
             return String.format(Locale.getDefault(), "Total %s km · Avg %s/%s", FormatUtils.number(total), FormatUtils.number(avg), avgUnit());
         }
-        int minutes = (int) Math.round(total);
-        int avg = divisor <= 0 ? 0 : Math.round(minutes / (float) divisor);
-        return String.format(Locale.getDefault(), "Total %d min · Avg %d/%s", minutes, avg, avgUnit());
+        double hours = total / 60d;
+        double avg = ChartStats.averagePositive(bucketTotals) / 60d;
+        return String.format(Locale.getDefault(), "Total %s h · Avg %s/%s", FormatUtils.number(hours), FormatUtils.number(avg), avgUnit());
     }
 
     private boolean supportsDistance(String type) {
         return "walk".equalsIgnoreCase(type) || "run".equalsIgnoreCase(type);
     }
 
-    private int averageDivisor() {
-        if (range == FilterRange.YEAR) return 12;
-        if (range == FilterRange.MONTH) return Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH);
-        return 7;
-    }
-
     private String avgUnit() {
         return range == FilterRange.YEAR ? "mo" : "day";
     }
 
-    private long[] rangeBounds() {
-        Calendar now = Calendar.getInstance();
-        Calendar start = Calendar.getInstance();
-        Calendar end = Calendar.getInstance();
-        if (range == FilterRange.YEAR) {
-            start.clear(); start.set(now.get(Calendar.YEAR), Calendar.JANUARY, 1, 0, 0, 0);
-            end.clear(); end.set(now.get(Calendar.YEAR), Calendar.DECEMBER, 31, 23, 59, 59);
-        } else if (range == FilterRange.MONTH) {
-            start.clear(); start.set(now.get(Calendar.YEAR), now.get(Calendar.MONTH), 1, 0, 0, 0);
-            end.clear(); end.set(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-        } else {
-            start.add(Calendar.DAY_OF_YEAR, -6);
-            start.set(Calendar.HOUR_OF_DAY, 0); start.set(Calendar.MINUTE, 0); start.set(Calendar.SECOND, 0); start.set(Calendar.MILLISECOND, 0);
-            end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59); end.set(Calendar.SECOND, 59); end.set(Calendar.MILLISECOND, 999);
+    private void ensurePeriod(List<ActivitySession> items) {
+        if (period != null) return;
+        long latest = 0L;
+        for (ActivitySession item : items) {
+            latest = Math.max(latest, item.sessionDateEpochMillis);
         }
-        return new long[]{start.getTimeInMillis(), end.getTimeInMillis()};
+        period = ChartPeriod.of(range, latest > 0L ? latest : System.currentTimeMillis());
+    }
+
+    private void updatePeriodNavigation(List<ActivitySession> items) {
+        long earliest = Long.MAX_VALUE;
+        long latest = 0L;
+        for (ActivitySession item : items) {
+            if (item.sessionDateEpochMillis <= 0L) continue;
+            earliest = Math.min(earliest, item.sessionDateEpochMillis);
+            latest = Math.max(latest, item.sessionDateEpochMillis);
+        }
+        if (latest <= 0L) {
+            binding.buttonPreviousPeriod.setEnabled(false);
+            binding.buttonNextPeriod.setEnabled(false);
+            return;
+        }
+        long earliestStart = ChartPeriod.periodStart(range, earliest);
+        long latestStart = ChartPeriod.periodStart(range, latest);
+        binding.buttonPreviousPeriod.setEnabled(period.startMillis > earliestStart);
+        binding.buttonNextPeriod.setEnabled(period.startMillis < latestStart);
     }
 
     private void updateFilterButtons() {

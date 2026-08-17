@@ -16,9 +16,7 @@ import com.example.petcare.util.FormatUtils;
 import com.example.petcare.util.ThemeUtils;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 
 public class ActivityDistanceBarChartView extends View {
     private final Paint axisPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -27,7 +25,7 @@ public class ActivityDistanceBarChartView extends View {
     private final List<BarInfo> bars = new ArrayList<>();
 
     private List<ActivitySession> sessions = new ArrayList<>();
-    private FilterRange range = FilterRange.WEEK;
+    private ChartPeriod period = ChartPeriod.of(FilterRange.WEEK, System.currentTimeMillis());
 
     public ActivityDistanceBarChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -36,9 +34,11 @@ public class ActivityDistanceBarChartView extends View {
         setClickable(true);
     }
 
-    public void setData(List<ActivitySession> sessions, FilterRange range) {
+    public void setData(List<ActivitySession> sessions, ChartPeriod period) {
         this.sessions = sessions == null ? new ArrayList<>() : new ArrayList<>(sessions);
-        this.range = range == null ? FilterRange.WEEK : range;
+        this.period = period == null
+                ? ChartPeriod.of(FilterRange.WEEK, System.currentTimeMillis())
+                : period;
         invalidate();
     }
 
@@ -96,7 +96,7 @@ public class ActivityDistanceBarChartView extends View {
     }
 
     private boolean shouldShowXAxisLabel(int index, String label) {
-        if (range != FilterRange.MONTH) return true;
+        if (period.range != FilterRange.MONTH) return true;
         try {
             int day = Integer.parseInt(label);
             return day == 1 || day == 5 || day == 10 || day == 15 || day == 20 || day == 25 || day == 30;
@@ -107,42 +107,10 @@ public class ActivityDistanceBarChartView extends View {
 
     private void buildBars() {
         bars.clear();
-        Calendar now = Calendar.getInstance();
-        if (range == FilterRange.YEAR) {
-            int year = now.get(Calendar.YEAR);
-            for (int month = 0; month < 12; month++) {
-                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, 1, 0, 0, 0);
-                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, start.getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59);
-                BarInfo info = sumDistance(start.getTimeInMillis(), end.getTimeInMillis());
-                info.label = new java.text.DateFormatSymbols(Locale.getDefault()).getShortMonths()[month];
-                bars.add(info);
-            }
-            return;
-        }
-        if (range == FilterRange.MONTH) {
-            int year = now.get(Calendar.YEAR);
-            int month = now.get(Calendar.MONTH);
-            int days = now.getActualMaximum(Calendar.DAY_OF_MONTH);
-            for (int day = 1; day <= days; day++) {
-                Calendar start = Calendar.getInstance(); start.clear(); start.set(year, month, day, 0, 0, 0);
-                Calendar end = Calendar.getInstance(); end.clear(); end.set(year, month, day, 23, 59, 59);
-                BarInfo info = sumDistance(start.getTimeInMillis(), end.getTimeInMillis());
-                info.label = String.valueOf(day);
-                bars.add(info);
-            }
-            return;
-        }
-        Calendar startDay = Calendar.getInstance();
-        startDay.add(Calendar.DAY_OF_YEAR, -6);
-        for (int i = 0; i < 7; i++) {
-            Calendar start = (Calendar) startDay.clone();
-            start.set(Calendar.HOUR_OF_DAY, 0); start.set(Calendar.MINUTE, 0); start.set(Calendar.SECOND, 0); start.set(Calendar.MILLISECOND, 0);
-            Calendar end = (Calendar) start.clone();
-            end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59); end.set(Calendar.SECOND, 59);
-            BarInfo info = sumDistance(start.getTimeInMillis(), end.getTimeInMillis());
-            info.label = FormatUtils.dayLabel(start.getTimeInMillis());
+        for (ChartPeriod.Bucket bucket : period.buckets) {
+            BarInfo info = sumDistance(bucket.startMillis, bucket.endMillis);
+            info.label = bucket.label;
             bars.add(info);
-            startDay.add(Calendar.DAY_OF_YEAR, 1);
         }
     }
 

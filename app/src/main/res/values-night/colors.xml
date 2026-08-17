@@ -15,4 +15,5 @@
     <color name="pet_activity_distance">#66BB6A</color>
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
+    <color name="pet_nav_active">#FFD600</color>
 </resources>

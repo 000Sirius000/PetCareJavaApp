@@ -29,6 +29,7 @@ public class WeightChartView extends View {
     private final Paint tickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final List<PointInfo> points = new ArrayList<>();
     private List<WeightEntry> entries = new ArrayList<>();
+    private ChartPeriod period = ChartPeriod.of(FilterRange.MONTH, System.currentTimeMillis());
 
     public WeightChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -38,9 +39,12 @@ public class WeightChartView extends View {
         tickPaint.setStrokeWidth(2f);
     }
 
-    public void setEntries(List<WeightEntry> items) {
+    public void setEntries(List<WeightEntry> items, ChartPeriod period) {
         entries = new ArrayList<>(items == null ? new ArrayList<>() : items);
         Collections.sort(entries, Comparator.comparingLong(item -> item.measuredAt));
+        this.period = period == null
+                ? ChartPeriod.of(FilterRange.MONTH, System.currentTimeMillis())
+                : period;
         invalidate();
     }
 
@@ -64,7 +68,7 @@ public class WeightChartView extends View {
         points.clear();
 
         if (entries.isEmpty()) {
-            canvas.drawText("No weight data yet", left + 20, bottom - 20, labelPaint);
+            canvas.drawText("No weight data for this month", left + 20, bottom - 20, labelPaint);
             return;
         }
 
@@ -84,9 +88,12 @@ public class WeightChartView extends View {
         float prevX = -1f;
         float prevY = -1f;
         int count = entries.size();
+        long periodDuration = Math.max(1L, period.endMillis - period.startMillis);
         for (int i = 0; i < count; i++) {
             WeightEntry entry = entries.get(i);
-            float x = left + ((right - left) * (count == 1 ? 0.5f : (i / (float) (count - 1))));
+            float fraction = (float) ((entry.measuredAt - period.startMillis) / (double) periodDuration);
+            fraction = Math.max(0f, Math.min(1f, fraction));
+            float x = left + ((right - left) * fraction);
             float normalized = (float) ((entry.weightValue - min) / (max - min));
             float y = bottom - normalized * (bottom - top);
 
@@ -109,14 +116,15 @@ public class WeightChartView extends View {
         canvas.drawText(String.format(java.util.Locale.getDefault(), "%.1f", max), 10, top + 10, labelPaint);
         canvas.drawText(String.format(java.util.Locale.getDefault(), "%.1f", min), 10, bottom, labelPaint);
 
-        int[] labelIndexes = labelIndexes(count);
-        for (int index : labelIndexes) {
-            if (index < 0 || index >= count) continue;
-            WeightEntry entry = entries.get(index);
-            float x = left + ((right - left) * (count == 1 ? 0.5f : (index / (float) (count - 1))));
+        int lastDay = period.buckets.size();
+        int[] days = lastDay < 20
+                ? new int[]{1, Math.max(1, lastDay / 2), lastDay}
+                : new int[]{1, 10, 20, lastDay};
+        for (int day : days) {
+            float fraction = (day - 1) / (float) Math.max(1, lastDay - 1);
+            float x = left + ((right - left) * fraction);
             canvas.drawLine(x, bottom, x, bottom + 10, tickPaint);
-            String label = FormatUtils.shortDate(entry.measuredAt);
-            canvas.drawText(label, x - 28, bottom + 34, labelPaint);
+            canvas.drawText(String.valueOf(day), x - 10, bottom + 34, labelPaint);
         }
     }
 
@@ -141,13 +149,6 @@ public class WeightChartView extends View {
             }
         }
         return true;
-    }
-
-    private int[] labelIndexes(int count) {
-        if (count <= 1) return new int[]{0};
-        if (count == 2) return new int[]{0, 1};
-        if (count == 3) return new int[]{0, 1, 2};
-        return new int[]{0, count / 3, (count * 2) / 3, count - 1};
     }
 
     private static class PointInfo {

@@ -70,6 +70,14 @@ public class FormatUtils {
         return String.format(Locale.getDefault(), "%.1f", value);
     }
 
+    public static String kilogramsFromGrams(double grams) {
+        if (Double.isNaN(grams) || Double.isInfinite(grams)) return "0";
+        String value = String.format(Locale.getDefault(), "%.3f", grams / 1000d);
+        while (value.endsWith("0")) value = value.substring(0, value.length() - 1);
+        if (value.endsWith(".") || value.endsWith(",")) value = value.substring(0, value.length() - 1);
+        return value;
+    }
+
     public static double parseLeadingNumber(String value) {
         if (value == null) return 0d;
         StringBuilder builder = new StringBuilder();
