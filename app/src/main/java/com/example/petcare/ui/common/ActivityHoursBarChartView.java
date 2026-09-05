@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ActivityHoursBarChartView extends View {
+    private static final float DEFAULT_TEXT_SIZE = 22f;
     private final Paint axisPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint barPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -30,7 +31,7 @@ public class ActivityHoursBarChartView extends View {
     public ActivityHoursBarChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
         axisPaint.setStrokeWidth(3f);
-        textPaint.setTextSize(22f);
+        textPaint.setTextSize(DEFAULT_TEXT_SIZE);
         setClickable(true);
     }
 
@@ -48,15 +49,19 @@ public class ActivityHoursBarChartView extends View {
         axisPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));
         barPaint.setColor(ThemeUtils.getAccentColor(getContext()));
         textPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_secondary));
+        boolean weekly = period.range == FilterRange.WEEK;
+        textPaint.setTextSize(weekly ? DEFAULT_TEXT_SIZE * 2f : DEFAULT_TEXT_SIZE);
+        Paint.FontMetrics metrics = textPaint.getFontMetrics();
+        float lineHeight = metrics.descent - metrics.ascent;
 
         float left = 76f;
         float right = getWidth() - 20f;
-        float top = 34f;
-        float bottom = getHeight() - 58f;
+        float top = weekly ? Math.max(34f, 8f - metrics.ascent) : 34f;
+        float bottom = getHeight() - (weekly ? 24f + 2f * lineHeight : 58f);
 
         canvas.drawLine(left, bottom, right, bottom, axisPaint);
         canvas.drawLine(left, top, left, bottom, axisPaint);
-        canvas.drawText("h", 12f, top + 18f, textPaint);
+        canvas.drawText("h", 12f, weekly ? top : top + 18f, textPaint);
 
         buildBars();
         if (bars.isEmpty()) {
@@ -70,6 +75,8 @@ public class ActivityHoursBarChartView extends View {
 
         float slotWidth = (right - left) / bars.size();
         float barWidth = Math.max(8f, slotWidth * 0.58f);
+        int tickStride = weekly ? weeklyTickStride(slotWidth) : 1;
+        float lastValueRight = Float.NEGATIVE_INFINITY;
 
         for (int i = 0; i < bars.size(); i++) {
             BarInfo bar = bars.get(i);
@@ -82,15 +89,63 @@ public class ActivityHoursBarChartView extends View {
             bar.right = x + barWidth;
             bar.bottom = bottom;
 
-            canvas.drawRect(bar.left, bar.top, bar.right, bar.bottom, barPaint);
+            float radius = Math.min(4f * getResources().getDisplayMetrics().density,
+                    Math.min(barWidth * 0.2f, height / 2f));
+            canvas.drawRoundRect(bar.left, bar.top, bar.right, bar.bottom, radius, radius, barPaint);
 
             if (bar.minutes > 0d) {
-                canvas.drawText(FormatUtils.number(bar.minutes / 60d), x + 2f, y - 8f, textPaint);
+                lastValueRight = drawValueLabel(canvas, FormatUtils.number(bar.minutes / 60d),
+                        x + barWidth / 2f, y - 8f, lastValueRight, weekly);
             }
-            if (shouldShowXAxisLabel(i, bar.label)) {
-                canvas.drawText(bar.label, x - 6f, bottom + 28f, textPaint);
+            if (shouldShowXAxisLabel(i, bar.label) && i % tickStride == 0) {
+                drawXAxisLabel(canvas, bar.label, x + barWidth / 2f, bottom, weekly, metrics);
             }
         }
+    }
+
+    private int weeklyTickStride(float slotWidth) {
+        float widest = 0f;
+        for (BarInfo bar : bars) {
+            int split = bar.label.lastIndexOf(' ');
+            if (split > 0) {
+                widest = Math.max(widest, textPaint.measureText(bar.label.substring(0, split)));
+                widest = Math.max(widest, textPaint.measureText(bar.label.substring(split + 1)));
+            } else {
+                widest = Math.max(widest, textPaint.measureText(bar.label));
+            }
+        }
+        return Math.max(1, (int) Math.ceil((widest + 8f) / Math.max(1f, slotWidth)));
+    }
+
+    private float drawValueLabel(Canvas canvas, String label, float centerX, float baseline,
+                                 float previousRight, boolean weekly) {
+        float textLeft = centeredTextLeft(label, centerX);
+        if (weekly && textLeft < previousRight + 8f) return previousRight;
+        canvas.drawText(label, textLeft, baseline, textPaint);
+        return textLeft + textPaint.measureText(label);
+    }
+
+    private void drawXAxisLabel(Canvas canvas, String label, float centerX, float bottom,
+                                boolean weekly, Paint.FontMetrics metrics) {
+        int split = weekly ? label.lastIndexOf(' ') : -1;
+        float baseline = weekly ? bottom + 10f - metrics.ascent : bottom + 28f;
+        if (split > 0) {
+            drawCenteredText(canvas, label.substring(0, split), centerX, baseline);
+            drawCenteredText(canvas, label.substring(split + 1), centerX,
+                    baseline + metrics.descent - metrics.ascent + 4f);
+        } else {
+            drawCenteredText(canvas, label, centerX, baseline);
+        }
+    }
+
+    private void drawCenteredText(Canvas canvas, String label, float centerX, float baseline) {
+        canvas.drawText(label, centeredTextLeft(label, centerX), baseline, textPaint);
+    }
+
+    private float centeredTextLeft(String label, float centerX) {
+        float halfWidth = textPaint.measureText(label) / 2f;
+        float safeCenter = Math.max(halfWidth + 4f, Math.min(getWidth() - halfWidth - 4f, centerX));
+        return safeCenter - halfWidth;
     }
 
     @Override

@@ -68,11 +68,11 @@
             android:id="@+id/button_previous_period"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Previous period"
+            android:background="@drawable/bg_chart_navigation"
+            android:contentDescription="@string/chart_previous_period"
             android:padding="12dp"
-            android:src="@android:drawable/ic_media_previous"
-            app:tint="@color/pet_text_primary" />
+            android:src="@drawable/ic_chart_previous"
+            app:tint="@color/chart_navigation_icon" />
 
         <TextView
             android:id="@+id/period_label"
@@ -88,11 +88,11 @@
             android:id="@+id/button_next_period"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Next period"
+            android:background="@drawable/bg_chart_navigation"
+            android:contentDescription="@string/chart_next_period"
             android:padding="12dp"
-            android:src="@android:drawable/ic_media_next"
-            app:tint="@color/pet_text_primary" />
+            android:src="@drawable/ic_chart_next"
+            app:tint="@color/chart_navigation_icon" />
     </LinearLayout>
 
     <ScrollView

@@ -22,6 +22,7 @@ import com.example.petcare.data.entities.ActivitySession;
 import com.example.petcare.databinding.FragmentActivityOnlySectionBinding;
 import com.example.petcare.ui.common.ChartPeriod;
 import com.example.petcare.ui.common.ChartStats;
+import com.example.petcare.ui.common.ChartSwipeTouchListener;
 import com.example.petcare.ui.common.FilterRange;
 import com.example.petcare.ui.forms.ActivitySessionFormActivity;
 import com.example.petcare.util.FormatUtils;
@@ -73,6 +74,8 @@ public class ActivityFragment extends Fragment {
         binding.buttonYear.setOnClickListener(v -> setRange(FilterRange.YEAR));
         binding.buttonPreviousPeriod.setOnClickListener(v -> movePeriod(-1));
         binding.buttonNextPeriod.setOnClickListener(v -> movePeriod(1));
+        ChartSwipeTouchListener.attach(binding.activityChart, () -> movePeriod(-1), () -> movePeriod(1));
+        ChartSwipeTouchListener.attach(binding.activityDistanceChart, () -> movePeriod(-1), () -> movePeriod(1));
 
         reload();
         return binding.getRoot();
@@ -91,7 +94,9 @@ public class ActivityFragment extends Fragment {
     }
 
     private void movePeriod(int amount) {
-        if (period == null) return;
+        if (period == null || binding == null) return;
+        if (amount < 0 && !binding.buttonPreviousPeriod.isEnabled()) return;
+        if (amount > 0 && !binding.buttonNextPeriod.isEnabled()) return;
         period = period.shift(amount);
         reload();
     }

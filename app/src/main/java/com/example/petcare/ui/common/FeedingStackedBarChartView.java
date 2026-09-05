@@ -3,6 +3,7 @@ package com.example.petcare.ui.common;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FeedingStackedBarChartView extends View {
+    private static final float DEFAULT_TEXT_SIZE = 22f;
     private static final int COLOR_NATURAL = 0xFF4CAF50;
     private static final int COLOR_DRY = 0xFFFFD600;
     private static final int COLOR_WET = 0xFF6EC6FF;
@@ -28,6 +30,7 @@ public class FeedingStackedBarChartView extends View {
     private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tooltipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tooltipBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path roundedBarPath = new Path();
     private final List<BarInfo> bars = new ArrayList<>();
 
     private List<FeedingLog> logs = new ArrayList<>();
@@ -39,7 +42,7 @@ public class FeedingStackedBarChartView extends View {
         super(context, attrs);
         setClickable(true);
         axisPaint.setStrokeWidth(3f);
-        textPaint.setTextSize(22f);
+        textPaint.setTextSize(DEFAULT_TEXT_SIZE);
         tooltipPaint.setColor(0xFF1A1A1A);
         tooltipPaint.setStyle(Paint.Style.FILL);
         tooltipBorderPaint.setColor(0xFF3A3A3A);
@@ -66,19 +69,24 @@ public class FeedingStackedBarChartView extends View {
         super.onDraw(canvas);
         axisPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));
         textPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_text_secondary));
+        boolean weekly = period.range == FilterRange.WEEK;
+        textPaint.setTextSize(weekly ? DEFAULT_TEXT_SIZE * 2f : DEFAULT_TEXT_SIZE);
+        Paint.FontMetrics metrics = textPaint.getFontMetrics();
+        float lineHeight = metrics.descent - metrics.ascent;
 
-        float left = 72f;
+        float left = weekly ? Math.max(72f, textPaint.measureText("kg") + 30f) : 72f;
         float right = getWidth() - 20f;
-        float top = 34f;
-        float bottom = getHeight() - 86f;
+        float top = weekly ? Math.max(34f, 8f - metrics.ascent) : 34f;
+        float bottom = getHeight() - (weekly ? 68f + 2f * lineHeight : 86f);
 
         canvas.drawLine(left, bottom, right, bottom, axisPaint);
         canvas.drawLine(left, top, left, bottom, axisPaint);
-        canvas.drawText("kg", 18f, top + 18f, textPaint);
+        canvas.drawText("kg", 18f, weekly ? top : top + 18f, textPaint);
 
         buildBars();
         if (bars.isEmpty()) {
             canvas.drawText("No feeding data yet", left + 20f, bottom - 20f, textPaint);
+            textPaint.setTextSize(DEFAULT_TEXT_SIZE);
             drawLegend(canvas, left, getHeight() - 26f);
             return;
         }
@@ -89,27 +97,90 @@ public class FeedingStackedBarChartView extends View {
 
         float slotWidth = (right - left) / bars.size();
         float barWidth = Math.max(8f, slotWidth * 0.58f);
+        int tickStride = weekly ? weeklyTickStride(slotWidth) : 1;
+        float lastValueRight = Float.NEGATIVE_INFINITY;
         for (int i = 0; i < bars.size(); i++) {
             BarInfo bar = bars.get(i);
             float x = left + i * slotWidth + (slotWidth - barWidth) / 2f;
             float currentBottom = bottom;
             if (bar.total() <= 0d) {
                 fillPaint.setColor(ContextCompat.getColor(getContext(), R.color.pet_border));
-                canvas.drawRect(x, bottom - 2f, x + barWidth, bottom, fillPaint);
+                canvas.drawRoundRect(x, bottom - 2f, x + barWidth, bottom, 1f, 1f, fillPaint);
                 bar.top = bottom - 2f;
             } else {
+                float totalHeight = (float) ((bar.total() / max) * (bottom - top - 12f));
+                bar.top = bottom - totalHeight;
+                float radius = Math.min(4f * getResources().getDisplayMetrics().density,
+                        Math.min(barWidth * 0.2f, totalHeight / 2f));
+                // Clip the whole stack once so adjacent food segments keep a seamless join.
+                roundedBarPath.reset();
+                roundedBarPath.addRoundRect(x, bar.top, x + barWidth, bottom,
+                        radius, radius, Path.Direction.CW);
+                canvas.save();
+                canvas.clipPath(roundedBarPath);
                 currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.natural, max, COLOR_NATURAL);
                 currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.dry, max, COLOR_DRY);
                 currentBottom = drawSegment(canvas, x, barWidth, currentBottom, bottom, top, bar.wet, max, COLOR_WET);
+                canvas.restore();
                 bar.top = currentBottom;
-                canvas.drawText(FormatUtils.kilogramsFromGrams(bar.total()), x + 2f, bar.top - 8f, textPaint);
+                lastValueRight = drawValueLabel(canvas, FormatUtils.kilogramsFromGrams(bar.total()),
+                        x + barWidth / 2f, bar.top - 8f, lastValueRight, weekly);
             }
             bar.left = x; bar.right = x + barWidth; bar.bottom = bottom;
-            if (shouldShowXAxisLabel(i, bar.label)) canvas.drawText(bar.label, x - 8f, bottom + 28f, textPaint);
+            if (shouldShowXAxisLabel(i, bar.label) && i % tickStride == 0) {
+                drawXAxisLabel(canvas, bar.label, x + barWidth / 2f, bottom, weekly, metrics);
+            }
         }
 
+        // Keep the legend and tap details compact; only the weekly plot labels grow.
+        textPaint.setTextSize(DEFAULT_TEXT_SIZE);
         drawLegend(canvas, left, getHeight() - 26f);
         if (selectedBarIndex >= 0 && selectedBarIndex < bars.size()) drawTooltip(canvas, bars.get(selectedBarIndex), selectedBarIndex, bars.size());
+    }
+
+    private int weeklyTickStride(float slotWidth) {
+        float widest = 0f;
+        for (BarInfo bar : bars) {
+            int split = bar.label.lastIndexOf(' ');
+            if (split > 0) {
+                widest = Math.max(widest, textPaint.measureText(bar.label.substring(0, split)));
+                widest = Math.max(widest, textPaint.measureText(bar.label.substring(split + 1)));
+            } else {
+                widest = Math.max(widest, textPaint.measureText(bar.label));
+            }
+        }
+        return Math.max(1, (int) Math.ceil((widest + 8f) / Math.max(1f, slotWidth)));
+    }
+
+    private float drawValueLabel(Canvas canvas, String label, float centerX, float baseline,
+                                 float previousRight, boolean weekly) {
+        float textLeft = centeredTextLeft(label, centerX);
+        if (weekly && textLeft < previousRight + 8f) return previousRight;
+        canvas.drawText(label, textLeft, baseline, textPaint);
+        return textLeft + textPaint.measureText(label);
+    }
+
+    private void drawXAxisLabel(Canvas canvas, String label, float centerX, float bottom,
+                                boolean weekly, Paint.FontMetrics metrics) {
+        int split = weekly ? label.lastIndexOf(' ') : -1;
+        float baseline = weekly ? bottom + 10f - metrics.ascent : bottom + 28f;
+        if (split > 0) {
+            drawCenteredText(canvas, label.substring(0, split), centerX, baseline);
+            drawCenteredText(canvas, label.substring(split + 1), centerX,
+                    baseline + metrics.descent - metrics.ascent + 4f);
+        } else {
+            drawCenteredText(canvas, label, centerX, baseline);
+        }
+    }
+
+    private void drawCenteredText(Canvas canvas, String label, float centerX, float baseline) {
+        canvas.drawText(label, centeredTextLeft(label, centerX), baseline, textPaint);
+    }
+
+    private float centeredTextLeft(String label, float centerX) {
+        float halfWidth = textPaint.measureText(label) / 2f;
+        float safeCenter = Math.max(halfWidth + 4f, Math.min(getWidth() - halfWidth - 4f, centerX));
+        return safeCenter - halfWidth;
     }
 
     private float drawSegment(Canvas canvas, float x, float width, float currentBottom, float bottom, float top, double value, double max, int color) {

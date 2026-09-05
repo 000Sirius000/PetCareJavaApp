@@ -1,0 +1,4 @@
+<resources>
+    <string name="chart_previous_period">Previous period</string>
+    <string name="chart_next_period">Next period</string>
+</resources>

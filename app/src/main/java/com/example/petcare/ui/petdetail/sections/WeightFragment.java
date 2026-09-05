@@ -1,27 +1,34 @@
 package com.example.petcare.ui.petdetail.sections;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.petcare.R;
 import com.example.petcare.data.PetRepository;
 import com.example.petcare.data.entities.Pet;
 import com.example.petcare.data.entities.WeightEntry;
 import com.example.petcare.databinding.FragmentWeightSectionBinding;
 import com.example.petcare.ui.common.ChartPeriod;
+import com.example.petcare.ui.common.ChartSwipeTouchListener;
 import com.example.petcare.ui.common.FilterRange;
 import com.example.petcare.ui.common.SimpleRowAdapter;
 import com.example.petcare.ui.forms.WeightEntryFormActivity;
 import com.example.petcare.util.FormatUtils;
+import com.example.petcare.util.ThemeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +41,7 @@ public class WeightFragment extends Fragment {
     private FragmentWeightSectionBinding binding;
     private PetRepository repository;
     private SimpleRowAdapter adapter;
+    private FilterRange range = FilterRange.MONTH;
     private ChartPeriod period;
 
     private final ActivityResultLauncher<Intent> formLauncher =
@@ -87,8 +95,12 @@ public class WeightFragment extends Fragment {
             intent.putExtra(WeightEntryFormActivity.EXTRA_PET_ID, petId);
             formLauncher.launch(intent);
         });
+        binding.buttonWeek.setOnClickListener(v -> setRange(FilterRange.WEEK));
+        binding.buttonMonth.setOnClickListener(v -> setRange(FilterRange.MONTH));
+        binding.buttonYear.setOnClickListener(v -> setRange(FilterRange.YEAR));
         binding.buttonPreviousPeriod.setOnClickListener(v -> movePeriod(-1));
         binding.buttonNextPeriod.setOnClickListener(v -> movePeriod(1));
+        ChartSwipeTouchListener.attach(binding.weightChart, () -> movePeriod(-1), () -> movePeriod(1));
 
         reload();
         return binding.getRoot();
@@ -100,13 +112,29 @@ public class WeightFragment extends Fragment {
         reload();
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
+
+    private void setRange(FilterRange newRange) {
+        if (range == newRange) return;
+        range = newRange;
+        period = null;
+        reload();
+    }
+
     private void movePeriod(int amount) {
-        if (period == null) return;
+        if (binding == null || period == null) return;
+        if (amount < 0 && !binding.buttonPreviousPeriod.isEnabled()) return;
+        if (amount > 0 && !binding.buttonNextPeriod.isEnabled()) return;
         period = period.shift(amount);
         reload();
     }
 
     private void reload() {
+        if (binding == null || repository == null) return;
         List<WeightEntry> entries = repository.getWeightEntries(petId);
         ensurePeriod(entries);
         Pet pet = repository.getPet(petId);
@@ -116,14 +144,15 @@ public class WeightFragment extends Fragment {
                 entry.healthyMax = pet.maxHealthyWeight;
             }
         }
-        List<WeightEntry> monthEntries = new ArrayList<>();
+        List<WeightEntry> periodEntries = new ArrayList<>();
         for (WeightEntry entry : entries) {
-            if (period.contains(entry.measuredAt)) monthEntries.add(entry);
+            if (period.contains(entry.measuredAt)) periodEntries.add(entry);
         }
         binding.periodLabel.setText(period.label);
-        binding.weightChart.setEntries(monthEntries, period);
+        binding.weightChart.setEntries(periodEntries, period);
         adapter.submitList(entries);
         binding.weightEmpty.setVisibility(entries.isEmpty() ? View.VISIBLE : View.GONE);
+        updateFilterButtons();
         updatePeriodNavigation(entries);
     }
 
@@ -131,7 +160,7 @@ public class WeightFragment extends Fragment {
         if (period != null) return;
         long latest = 0L;
         for (WeightEntry entry : entries) latest = Math.max(latest, entry.measuredAt);
-        period = ChartPeriod.of(FilterRange.MONTH, latest > 0L ? latest : System.currentTimeMillis());
+        period = ChartPeriod.of(range, latest > 0L ? latest : System.currentTimeMillis());
     }
 
     private void updatePeriodNavigation(List<WeightEntry> entries) {
@@ -147,9 +176,30 @@ public class WeightFragment extends Fragment {
             binding.buttonNextPeriod.setEnabled(false);
             return;
         }
-        long earliestStart = ChartPeriod.periodStart(FilterRange.MONTH, earliest);
-        long latestStart = ChartPeriod.periodStart(FilterRange.MONTH, latest);
+        long earliestStart = ChartPeriod.periodStart(range, earliest);
+        long latestStart = ChartPeriod.periodStart(range, latest);
         binding.buttonPreviousPeriod.setEnabled(period.startMillis > earliestStart);
         binding.buttonNextPeriod.setEnabled(period.startMillis < latestStart);
+    }
+
+    private void updateFilterButtons() {
+        styleChip(binding.buttonWeek, range == FilterRange.WEEK);
+        styleChip(binding.buttonMonth, range == FilterRange.MONTH);
+        styleChip(binding.buttonYear, range == FilterRange.YEAR);
+    }
+
+    private void styleChip(Button button, boolean active) {
+        int accent = ThemeUtils.getAccentColor(requireContext());
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(dp(20));
+        background.setStroke(dp(2), accent);
+        background.setColor(active ? accent : Color.TRANSPARENT);
+        button.setBackground(background);
+        button.setTextColor(active ? ContextCompat.getColor(requireContext(), R.color.black) : accent);
+        button.setSelected(active);
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 }
